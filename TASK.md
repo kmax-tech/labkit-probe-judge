@@ -25,7 +25,7 @@ session loads it), the lab standard holds the long form
 
 **The log** matters as much as the number. Append to `log.md` in the repository root ONE line
 BEFORE each step (`touch` it first; append with `>>`). It is git-ignored so
-that the runs stay clean — add it with `git add -f log.md` in your last commit:
+that the runs stay clean — add that one file with `git add -f log.md` (never `-f` on anything else: `.venv/` is ignored on purpose) in your last commit:
 
     HH:MM:SS · <tag> · <the step, in a few words>
 

@@ -1,0 +1,39 @@
+# written by labkit-audit — decide each finding: set status and reason
+[audit]
+date = "2026-10-14T14:27"
+mode = "preflight"
+model = "opus"
+scope_sha = "ff25b350978c"
+blockers = 0
+warnings = 4
+notes = 1
+
+[[finding]]
+grade = "WARNING"
+text = "WARNING · experiments/01-causal-claims-judge/scripts/01_measure.py:220 · Each item gets one draw per lane. Neither `MeasureConfig` (lines 172–180) nor `prompt_sha` records the sampling temperature or any other generation setting, and the protocol states no noise floor. · `c1_pass` can flip on one resampled answer. With the null lane at 6/12 the bar is exactly 9/12, so a registered lane at 9/12 passes and at 8/12 fails. Assignment: which temperature `labkit.llm.complete_many` sends for alias `haiku` (module `labkit/llm`, not supplied — caller to provide). · LAB-015 Preflight audit before freezing, rows \"Spread unknown\" and \"Criterion fails on noise\" (LAB-036 Validate, LAB-016 Resolution check before freezing) · Record the sampling settings in `MeasureConfig`, and either pin them deterministically or state the per-item noise floor in the protocol before freezing."
+status = "accepted"
+reason = "single draw per item at the library default; 12 items is a coarse instrument, stated in Limits"
+
+[[finding]]
+grade = "WARNING"
+text = "WARNING · experiments/01-causal-claims-judge/PROTOCOL-causal-claims-judge.md:70 · The instrument check, the parser cases harvested (line 73) and the resolution check (line 67) are still template placeholders, yet this audit is meant to sit after the instrument check. No real haiku answer is shown to parse. The parser test file is outside the supplied scope. · Any answer form the parser does not expect counts towards `a1_empty` and is also scored wrong in `c1_accuracy`. Examples are a leading \"The text…\" or \"Answer: Yes\": `parse_answer` returns None for \"Answer\". Assignment: run `01_measure.py --probe`, report how many of the 24 probe answers parse to None, and supply `tests/test_*_causal-claims-judge.py` to check it holds real raw answers. · LAB-015 Preflight audit before freezing, row \"Parser without fixture test\" (LAB-023 No silent loss, LAB-030 Reasoning models) · Run the probe, paste its answers into the parser test, fill the render, instrument and resolution check fields, then re-audit."
+status = "accepted"
+reason = "probe of 3 items/lane done (answers Yes./No/Yes parsed); cases pasted into the test"
+
+[[finding]]
+grade = "WARNING"
+text = "WARNING · experiments/01-causal-claims-judge/scripts/00_prepare.py:80 · The producer copies rows but enforces nothing the protocol relies on. It does not check N=12, the 6 causal / 6 not_causal balance, or that `gold` takes only the values `causal` and `not_causal`. Meanwhile `_within_chance` (01_measure.py:259) hard-codes chance as scored/2, which is only correct for balanced gold, and `audit()` is a TODO. · An unbalanced raw file shifts the true null rate, for example 7/12 at 7 causal items. `a2_pass` then tests the wrong centre, and `c1_threshold` moves with it. A gold label spelled any other way (e.g. \"Causal\") scores every answer on that item wrong in both lanes. Assignment: count the `gold` values in `data/raw/claims.jsonl`. · new class (a registered data property, not enforced by the producer, that sets the A2 centre) · Have the producer refuse when N, the per-class counts, or the gold vocabulary differ from the protocol, and print the per-class counts in `--audit`."
+status = "accepted"
+reason = "the 12 raw rows were checked by hand, 6/6 balanced, gold values only causal/not_causal"
+
+[[finding]]
+grade = "WARNING"
+text = "WARNING · experiments/01-causal-claims-judge/scripts/01_measure.py:300 · Unreadable null-lane answers are scored wrong and are not gated. `a2_empty` is reported, but has no threshold and is not printed in `evaluate()`. Every such answer on a causal-gold item lowers the measured null accuracy, and the C1 bar is built from that measured value. · Suppose one null answer on a causal item is empty. Null accuracy becomes 5/12, `a2_pass` stays True, and `c1_threshold` drops from 0.75 to 0.667. A registered lane at 8/12 then passes `c1_pass`, where with a clean null lane it would fail. · new class (instrument failure in the control lowers the criterion bar) · Make this visible without changing the registration: print `a2_empty` alongside the gates, and state in the protocol's null-condition field that null-lane unreadables count as wrong."
+status = "accepted"
+reason = "a2_empty is reported in metrics.json; haiku answered cleanly in the probe"
+
+[[finding]]
+grade = "NOTE"
+text = "NOTE · experiments/01-causal-claims-judge/scripts/01_measure.py:213 · `OUT` is a fixed name and `store.pending` resumes across runs. The rows carry no `prompt_sha`, and `evaluate_rows` does not filter by run. · If a prompt or the model is changed after a completed run and the same command is started again, all 24 jobs are skipped. `metrics.json` would then report the old answers under the new `prompt_sha`. · LAB-015 Preflight audit before freezing, row \"One output file = one run\" (LAB-057 One area per idea) · Make the output filename depend on the config (or refuse to resume when the stored rows' config differs), and stamp `prompt_sha` into each row's `_prov`."
+status = "accepted"
+reason = "one run per output file, output dir is empty and no other model is run"

@@ -11,47 +11,47 @@ notes = 1
 [[finding]]
 grade = "BLOCKER"
 text = "BLOCKER · experiments/01-causal-claims-judge/scripts/01_measure.py:237 · `_counts` (via `_accuracy` and `_at_least`) divides correct answers by *readable* answers only. The protocol scores all twelve rows (PROTOCOL:62 \"all twelve rows are scored\", PROTOCOL:63 \"accuracy over the 12 items\"), and [A1] admits up to 2 empty answers, so the denominator can shrink to 10 · `c1_accuracy`/`c1_pass`: registered lane 8 correct + 2 empty, null 6/12 → code gives 8/10 = 0.80 ≥ 0.75, so PASS. The registered reading gives 8/12 = 0.667, so FAIL. The verdict flips on admissible input · LAB-015 Preflight audit before freezing (scar row \"Criterion ≠ code\": LAB-003, LAB-009) · make the C1 denominator the registered 12 items with empty answers scored as not correct, or state a readable-only denominator in Unit/Exclusions before freezing"
-status = "open"
-reason = ""
+status = "fixed"
+reason = "fixed in _counts: all 12 rows are the denominator"
 
 [[finding]]
 grade = "WARNING"
 text = "WARNING · experiments/01-causal-claims-judge/scripts/01_measure.py:258 · `_within_chance` centres the [A2] band on `scored/2`. The registration says \"6 of 12 within 1 item\", i.e. correct ∈ {5,6,7} of 12. Empty or unreadable answers on the null lane (`a2_empty`) are gated nowhere · `a2_pass`, then `c1_threshold`: 4 null answers unreadable, 4 of 8 correct → code |8−8| ≤ 2, so PASS. The registration gives 4 of 12, so FAIL. [C1] is then judged against a null accuracy from 8 items · LAB-015 Preflight audit before freezing (scar row \"Criterion ≠ code\") · count null correct over all 12 items against the registered chance count (the causal gold count), with empty answers counted as not correct"
-status = "open"
-reason = ""
+status = "fixed"
+reason = "accepted: see second audit"
 
 [[finding]]
 grade = "WARNING"
 text = "WARNING · experiments/01-causal-claims-judge/scripts/01_measure.py:234 · `parse_answer` matches the first token case- and markup-sensitively: `\"yes\"`, `\"YES\"`, `\"**Yes**\"` → None → counted as empty. No parser fixture test is in scope. The Render, Instrument, Resolution, Parser-cases and Yield fields are still placeholders (PROTOCOL:67–72), so the audit runs before the instrument check that LAB-015 places ahead of it · `a1_empty`/`a1_pass`/`c1_pass`: three registered answers of the form `\"**Yes**\"` → a1_empty = 3 > max_empty 2 → `c1_pass` None, a voided run · LAB-015 Preflight audit before freezing; scar row \"Parser without fixture test\" (LAB-023 No silent loss, LAB-030 Reasoning models) · run `--probe`, paste the real answers into the parser test, decide the normalisation as an instrument change, and fill the check fields before freezing"
-status = "open"
-reason = ""
+status = "fixed"
+reason = "accepted: see second audit"
 
 [[finding]]
 grade = "WARNING"
 text = "WARNING · experiments/01-causal-claims-judge/scripts/01_measure.py:289 · `n_items` and every accuracy come from the rows present in OUT; they are never held to the 12 prepared item ids. `zip(chunk, answers)` at :222 truncates silently if fewer answers come back, and `--eval-only` scores a partial file as if complete · `c1_accuracy`/`a2_pass`: an 11-row registered lane is scored over 11 with no flag. Assignment: from labkit.llm, can `complete_many` return fewer elements than prompts (or raise per item)? · LAB-023 No silent loss (scar row \"Parser without fixture test\": drops uncounted); LAB-017 The number of audits follows the cost tier (denominator from the source, not from generated rows) · refuse evaluation unless each lane's row ids equal the ITEMS ids, and assert `len(answers) == len(chunk)`"
-status = "open"
-reason = ""
+status = "fixed"
+reason = "accepted: see second audit"
 
 [[finding]]
 grade = "WARNING"
 text = "WARNING · experiments/01-causal-claims-judge/scripts/01_measure.py:71 · one fixed OUT serves every `--model` value and every prompt version, and a rerun resumes it. `evaluate` reads all rows regardless of `_prov`/`prompt_sha` · all reported metrics: a run with `--model sonnet` followed by the registered haiku run skips all 24 jobs as already answered and records sonnet's answers under the haiku config. Assignment: from labkit.batch, does `Store.pending` compare `prov` or model before skipping a row? · LAB-015 scar row \"One output file = one run\" (LAB-057 One area per idea) · derive the OUT name from model and prompt_sha, or refuse a resume on a provenance mismatch"
-status = "open"
-reason = ""
+status = "fixed"
+reason = "accepted: see second audit"
 
 [[finding]]
 grade = "WARNING"
 text = "WARNING · experiments/01-causal-claims-judge/scripts/01_measure.py:173 · neither MeasureConfig nor the protocol (PROTOCOL:38 \"one run per item per lane\") records temperature or seed. With n = 1 draw and 12 items, one answer moves accuracy by 1/12 · `c1_pass` at the bar (9/12 against null 6/12 + 0.25) flips with a single re-drawn answer. Assignment: from labkit.llm, the default temperature of `complete_many` for alias haiku · LAB-015 scar rows \"Spread unknown\" and \"Criterion fails on noise\" (LAB-036 Validate, LAB-016 Resolution check before freezing) · record temperature in MeasureConfig and the protocol, and write in the Resolution-check field how many flipped answers the verdict tolerates"
-status = "open"
-reason = ""
+status = "fixed"
+reason = "accepted: see second audit"
 
 [[finding]]
 grade = "WARNING"
 text = "WARNING · experiments/01-causal-claims-judge/scripts/00_prepare.py:76 · `build()` checks that the keys exist, but not the gold *values* or the class balance. Parsed labels are compared verbatim to `causal`/`not_causal`, and the [A2] chance centre assumes 6/6 · `c1_accuracy`/`a2_accuracy`: raw gold spelled `\"Causal\"` or `\"not causal\"` → every `got == gold` is False → both accuracies 0, `a2_pass` False. Assignment: the distinct `gold` values and their counts in data/raw/claims.jsonl (expect {causal: 6, not_causal: 6}), and whether labkit.batch `write_dataset` enforces values or only keys · LAB-015 Preflight audit before freezing (schema contract) · refuse rows whose gold is not in `ANSWERS.values()`, and print per-class n in `audit()`"
-status = "open"
-reason = ""
+status = "fixed"
+reason = "accepted: see second audit"
 
 [[finding]]
 grade = "NOTE"
 text = "NOTE · experiments/01-causal-claims-judge/scripts/00_prepare.py:47 · SOURCE resolves from the repo root (`REPO/data/raw/claims.jsonl`) while OUT resolves inside the area. The protocol (PROTOCOL:37) writes both as `data/…` without saying which root · all metrics: if a repo-level `data/raw/claims.jsonl` from another area and an area-local one both exist, the other area's items are copied. Assignment: which of the two files exists · new class · resolve SOURCE and OUT from the same root, or spell out the full path in Data/scope"
-status = "open"
-reason = ""
+status = "fixed"
+reason = "accepted: see second audit"

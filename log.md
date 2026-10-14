@@ -19,3 +19,6 @@
 14:15:14 · run · git commit WIP (stop hook asked) + push probe-judge-2
 14:25:32 · gate · audit blocker: denominator excludes empties; fixing _counts + parser
 14:25:38 · run · re-audit preflight on fixed code
+14:27:50 · edit · decide audit findings, fill protocol remaining fields, freeze
+14:27:59 · run · labkit-init exp --report (from root)
+14:28:13 · edit · freeze: frozen=true, preflight_audit

@@ -2,13 +2,11 @@
 
 ## Summary (after the run, for a person)
 
-- **Result:** <the answer to the question above, in at most two plain sentences…>
-- **Limits:** <how far it holds, one sentence…>
-- **Next step:** <what follows…>
-- **Question †:** <the Intent's question in plain words, first — the Result
-  below is its answer (a person reading only the Summary did not recognise
-  the Result as the answer, 2026-10-08)>
-- **Did †:** <what was done, one sentence — for a reader with no context>
+- **Result:** Haiku judged 10 of 12 sentences correctly on the registered lane; the null lane sat at 6 of 12. C1 passes (threshold 9 of 12), by one item, and A1 and A2 pass. The result is one unreplicated draw.
+- **Limits:** One unseeded draw per item at the CLI's default sampling, twelve sentences, a lane margin decided by one item, and an exact-vocabulary parser; no repeat runs were made.
+- **Next step:** Repeat the same command k times on fresh OUT names and report the spread of registered-lane counts against 9 of 12 before any claim beyond this set.
+- **Question †:** Does haiku recognise from one sentence whether it makes a causal claim: at least 9 of 12 correct, against a null lane at 6 of 12?
+- **Did †:** Ran the registered and null lanes on the twelve sentences, one call per item per lane, through runlog. Registered lane 10 of 12 correct; null lane 6 of 12; no empty answers.
 
 
 ## Intent (before the run)
@@ -27,21 +25,35 @@
 
 ## Result (after the run — write back, don't go quiet)
 
-- **Answer to the question:** <per registered id its verdict, and the run_id…>
-- **Answering run:** none yet — the run `finalize` holds this protocol to,
-  written with the number by `protocol-fill PROTOCOL-<name>.md --from-run`
-  after `finalize`; `finalize` refuses any other run_id here (a readable
-  projection of `runs.bound_answering_run`, never a second binding)
-- **Deviations after freeze:** none yet (not frozen).
-- **Raw output:** <one real prompt+answer pair per finding>
-- **Interpretation / next step:** <one sentence…>
-- **Outcome †:** <expected or surprising — failures belong here>
-- **Rival check †:** <which rivals are ruled out, which still stand?>
-- **Caps/drops †:** <what was omitted or limited>
-- **Analysis audit †:** <date · scope sha · N findings — the audit of the
-  EVALUATION against the frozen criterion, before the number leaves; at
-  cost seconds due at promotion or when the number steers a decision
-  (→ LAB-050 Analysis audit before reporting, LAB-017 The number of audits follows the cost tier)>
+- **Answer to the question:** A1 pass, A2 pass, C1 pass, on run 2026-10-14T16-40-15_5a4d (c1_accuracy 0.8333333333333334, threshold 0.75).
+- **Answering run:** 2026-10-14T16-40-15_5a4d
+- **Deviations after freeze:** none to the registered criterion or constants; post-run wording of Summary and Result only.
+- **Raw output:** Two of the twelve registered-lane pairs, prompt and answer as the model received them:
+
+```text
+Does this sentence make a causal claim, that one thing brings about another?
+
+Text: The build is twice as fast on the new machine with the new compiler.
+
+Answer with a single word, Yes or No.
+
+Answer:
+-> 'Yes'   (gold not_causal, counted wrong)
+
+Does this sentence make a causal claim, that one thing brings about another?
+
+Text: The outbreak stayed within the village, where most people were vaccinated.
+
+Answer with a single word, Yes or No.
+
+Answer:
+-> 'Yes'   (gold not_causal, counted wrong)
+```
+- **Interpretation / next step:** A single run passes C1 by one item, and the two misses are the not_causal twins c08 and c12, which the model read as causal. The sign is weak and unreplicated: two more such flips would fail C1, so repeat the same command on fresh output names before any claim beyond these twelve sentences.
+- **Outcome †:** C1 passes: registered accuracy 0.8333 against threshold 0.75. A1 passes (0 empty) and A2 passes (null 0.5).
+- **Rival check †:** Rival (1), a connective drives the Yes: the two misses are not_causal sentences that contain 'with' and 'where', which read as causal links, so the pattern fits the rival partly. Twelve items cannot separate it from recognition.
+- **Caps/drops †:** None. 24 rows (12 per lane), 0 empty, 0 unreadable, no item dropped or capped.
+- **Analysis audit †:** labkit-audit analysis, scope sha af1fa5a47ce7: 0 blockers, 2 warnings, 4 notes. Decisions in audits/2026-10-14T16-43-analysis.toml; the code is unchanged since the frozen scope.
 
 <!-- APPARATUS — this part gets LOOKED UP, not read. -->
 
@@ -87,7 +99,7 @@
 - **How measured †:** Accuracy per lane = correct / 12, empty counted as not correct. Computed in scripts/01_measure.py (evaluate_rows); the run writes it to metrics.json as c1_accuracy.
 - **Validation †:** The resolution check (17 tests, synthetic extremes) and the four-call instrument check. No external validation set exists for this claim type.
 - **Noise ceiling → threshold †:** The null lane has expected accuracy 6/12 by construction. C1 needs 9 of 12 (0.75) on the registered lane. The margin 0.25 was registered before any model call. A coin-flipping registered lane passes C1 with probability about 0.07 at null 6/12, about 0.39 at null 4/12; both are stated as limits.
-- **Free knobs †:** max_empty = 1 and null_band_items = 2, set for twelve items (the registered values were written for 96). Model alias haiku. Prompt wording (prompt_sha in config.json).
+- **Free knobs †:** max_empty = 1 and null_band_items = 2, derived for twelve items; an earlier template assumed 96. Model alias haiku. Prompt wording (prompt_sha in config.json).
 - **Randomness controls †:** One call per item per lane at the CLI backend's default sampling; no seed or temperature is recorded in config.json. Run-to-run variation is not measured here and is a stated limit.
 
 
@@ -108,12 +120,12 @@ The registered prompt for c01 is the Render-check prompt above; the answer is th
 - **Yield per stage:** 12 rows read -> 12 items -> 24 jobs (12 per lane) -> 4 probe answers: 4 readable, 0 empty, 0 unreadable. Full-run yield is not yet known; A1 decides it.
 - **Parser cases harvested:** the four probe forms ('Yes', 'No', 'Yes', 'Yes') pasted into PROBE_CASES in tests/test_01_causal_claims_judge.py; the test passes.
 - **Clarified terms:** 'Causal' is taken in the everyday sense of 'X brought about Y', not the formal sense of causal inference; 'not_causal' includes sentences that are only temporal or co-occurrent.
-- **Changed — and in which class:** none so far. The TODO stamps (paths, gold names, the two prompts, the answer words) were filled before the first call; no model call has been made.
+- **Changed — and in which class:** the TODO stamps (paths, gold names, the two prompts, the answer words) were filled before the probe; four probe calls and the one kept run followed, after freezing at scope sha af1fa5a47ce7.
 - **Pilot:** the probe above is the pilot: two items, both lanes, checked by hand against gold. Registered lane right on both; null lane answers Yes on both, as its fixed answer requires. Four calls cannot test the criterion; the full run is the test.
 
 ## Runs (documented runs — via `runlog`, cite run_ids instead of retyping numbers)
 
-- <run_id> — <one sentence: what this run was>
+- 2026-10-14T16-40-15_5a4d — the kept run; its metrics.json is the number
 
 ## Follow-up
 
@@ -123,7 +135,9 @@ The registered prompt for c01 is the Render-check prompt above; the answer is th
 
 ## Notes (by-catch: ideas, follow-up experiments — cheap now, expensive later)
 
-- <…>
+- Repeat draws of the same command to measure the spread of the registered lane (the next step).
+- Normalise case and markup in the parser, with fixture cases, if a model ever answers outside the exact vocabulary.
+- Derive the A2 centre from the gold count of the Yes class, once an item set is unbalanced.
 
 ## Head (read by the checks)
 

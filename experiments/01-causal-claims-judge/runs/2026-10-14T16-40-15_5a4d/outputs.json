@@ -1,0 +1,11 @@
+[
+  {
+    "path": "experiments/01-causal-claims-judge/output/causal-claims-judge.jsonl",
+    "sha256": "90e1825128677585",
+    "lines": 24,
+    "rows_from": {
+      "2026-10-14T16-40-15_5a4d": 24
+    },
+    "continues": []
+  }
+]

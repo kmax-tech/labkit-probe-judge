@@ -1,0 +1,387 @@
+#!/usr/bin/env python3
+"""<the same measurement question as in PROTOCOL-causal-claims-judge.md, one sentence>
+
+Usage:
+    ../../.venv/bin/python scripts/01_measure.py --show 3
+        Render the prompts of three items for both lanes; no model call.
+    ../../.venv/bin/python scripts/01_measure.py --probe
+        Instrument check: twelve items through the real pipeline into a
+        throwaway file; prints parser cases to paste into the test.
+    ../../.venv/bin/python scripts/01_measure.py
+        The full run, recorded by runlog (cost = "seconds": in the
+        foreground; minutes or hours: `runlog start <area> -- …`).
+    ../../.venv/bin/python scripts/01_measure.py --eval-only
+        Re-evaluate the kept rows; no model call.
+
+Terms: a *lane* is one way of asking — the *registered lane* asks the
+question under test, the *null lane* asks one the data cannot answer (the
+noise floor of this run). *Admissibility* ([A…]) is what must hold before
+any verdict; the *criterion* ([C1]) is the verdict.
+
+Measurement contract:
+  - Every item runs once in each lane, in the same call.
+  - Accuracy is correct answers over EVERY item of the lane: an empty or
+    unreadable answer counts as not correct (else a model would gain
+    accuracy by not answering) and is counted on its own as `*_empty`.
+  - [C1] passes when the registered lane's accuracy is at least the null
+    lane's plus `margin`.
+  - [A1] checks the registered lane's readable yield, [A2] that the null
+    lane sits near chance. If either fails, [C1] has no verdict (None).
+  - Every registered id produces its metric key in every evaluation.
+  - `evaluate_rows()` is the only implementation of these formulas;
+    `02_analyze.py` and the test import it, never copy it.
+  - The protocol owns the registered thresholds; `MeasureConfig` holds them
+    for one execution; config.json records that object whole;
+    `labkit-params <area>` shows every value with its home.
+  - One answer vocabulary (`ANSWERS`), rendered into the prompt and read by
+    the parser.
+
+Why (house rules, one per line so a reference is never cut):
+  LAB-034 Null condition in the same run
+  LAB-035 Thresholds belong to the run
+  LAB-041 Generate numbers, don't retype them
+  LAB-004 Identifiers make the intent addressable
+  LAB-052 Instance gate before registered use
+  LAB-038 What the prompt demands
+Stamped by `labkit-init exp causal-claims-judge`; fill the TODOs, keep the structure.
+"""
+from __future__ import annotations
+
+import argparse
+import hashlib
+import sys
+import tomllib
+from dataclasses import asdict, dataclass, replace
+from fractions import Fraction
+from pathlib import Path
+
+HERE = Path(__file__).resolve().parent
+AREA = HERE.parent
+# Which protocol this script's runs belong to — named, not guessed: a series
+# area holds many, and a run bound to the wrong one makes every later check
+# green about the wrong promises.
+PROTOCOL = AREA / "PROTOCOL-causal-claims-judge.md"
+REPO = AREA.parent.parent
+sys.path.insert(0, str(REPO / "lib"))   # repo-local helpers only
+from labkit import batch, llm, promises, runlog
+
+ITEMS = AREA / "data" / "prepared" / "claim_sentences_v1.jsonl"   # written by 00_prepare.py: id · text · gold
+# One run, one output file. A second start of the same command RESUMES this
+# file (rows already answered are skipped); runlog records the file's sha per
+# run, so a run can always be told from the file it produced. A new
+# measurement — other prompt, other model, other items — gets a new file
+# name, or this one moved aside first: never two measurements in one file.
+OUT = AREA / "output" / "causal-claims-judge.jsonl"
+MODEL = "haiku"                                       # alias from models.toml, never an endpoint
+TEXT_FIELD = "text"                                     # the item field the prompt shows
+
+# Cases the criterion singles out, as DATA — delete this block when [C…]
+# names no case classes. One [[case]] per singled-out item in
+# data/prepared/case_classes.toml:
+#
+#     [[case]]
+#     id = "dienstreiseantrag-33"      # the item's id in ITEMS, never a copy of the item
+#     cls = "over_ceiling"            # a class [C…] speaks of
+#     facts = { hotel_eur = 140, ceiling_eur = 117 }   # what the class follows from
+#
+# The stamped test recomputes each class from its facts (CLASS_RULE), so an
+# id cannot sit in the wrong list; the probe takes one case per class. A
+# tuple of ids with the reason in a docstring ("33 in Wien, 140 € > ARV
+# 117") was the form a reader could not check (uniagent area 17, 2026-10-08).
+CASE_CLASSES = AREA / "data" / "prepared" / "case_classes.toml"
+
+
+@dataclass(frozen=True)
+class CaseClass:
+    """One item the criterion names: its id, its class, and the facts the class rests on."""
+
+    id: str
+    cls: str
+    facts: dict
+
+
+def read_case_classes(path: Path = CASE_CLASSES) -> tuple[CaseClass, ...]:
+    """The [[case]] rows of `path`, empty when the file does not exist.
+    Refuses a duplicate id or a row without id/cls — a silent gap here
+    would put an item in no class (→ LAB-023 No silent loss)."""
+    if not path.is_file():
+        return ()
+    rows = tomllib.loads(path.read_text(encoding="utf-8")).get("case", [])
+    seen: set[str] = set()
+    out = []
+    for n, row in enumerate(rows, 1):
+        if not isinstance(row.get("id"), str) or not isinstance(row.get("cls"), str):
+            raise ValueError(f"{path.name}: [[case]] #{n} needs string `id` and `cls`")
+        if row["id"] in seen:
+            raise ValueError(f"{path.name}: {row['id']} stands twice")
+        seen.add(row["id"])
+        out.append(CaseClass(row["id"], row["cls"], dict(row.get("facts", {}))))
+    return tuple(out)
+
+
+def ids_of(cls: str, cases: tuple[CaseClass, ...] | None = None) -> tuple[str, ...]:
+    """The ids of one class, in table order."""
+    return tuple(c.id for c in (read_case_classes() if cases is None else cases) if c.cls == cls)
+
+
+def one_per_class(cases: tuple[CaseClass, ...] | None = None) -> tuple[str, ...]:
+    """The probe's cases: the first id of every class — one per thing the criterion distinguishes."""
+    first: dict[str, str] = {}
+    for c in read_case_classes() if cases is None else cases:
+        first.setdefault(c.cls, c.id)
+    return tuple(first.values())
+
+# The answer vocabulary — one constant, two readers (prompt and parser).
+# TODO: map each answer word to the gold label it means.
+ANSWERS = {"Yes": "causal", "No": "not_causal"}
+ANSWER_LINE = f"Answer with a single word, {' or '.join(ANSWERS)}."
+
+# TODO: the registered question, verbatim — it goes into the PROTOCOL word
+# for word (code-check holds the protocol's block to this constant).
+PROMPT = ("Does this sentence make a causal claim, that one thing brings about another?\n\n"
+          "Text: {text}\n\n" + ANSWER_LINE + "\n\nAnswer:")
+# TODO: the null lane — same renderer, same parser, same label mapping, a
+# question the data CANNOT answer (a placebo question, or the labels
+# shuffled before scoring). Its accuracy is the noise ceiling of THIS run;
+# derive its expected value in the protocol's null-condition field (LAB-037 Every anchor carries its target and rationale).
+# Safest placebo: one whose true answer is the SAME for every item ("Is this
+# text written in English?") — its expected accuracy is the gold share of
+# the class that answer maps to (0.5 on balanced gold), known before any
+# call. A placebo whose answer varies per item (numbers, length, negation)
+# can track the gold label: one cold agent's did, and [A2] withheld [C1]
+# (usability probe 2026-10-07).
+PROMPT_NULL = ("Is this text written in English?\n\n"
+               "Text: {text}\n\n" + ANSWER_LINE + "\n\nAnswer:")
+LANES = {"registered": PROMPT, "null": PROMPT_NULL}
+
+
+@dataclass(frozen=True)
+class MeasureConfig:
+    """Every value that shapes the number — one execution of this protocol.
+
+    The PROTOCOL owns validity and meaning (criterion, registered constants,
+    which run reports); this object materialises one execution; the run's
+    config.json records it whole (`asdict(cfg)`); `evaluate_rows()` reads
+    its thresholds from here and nowhere else (the stamped test flips one
+    and expects the verdict to move). The thresholds have NO default: they
+    come from the protocol's [[promise]] tables, under the SAME name
+    (`constants = { margin = 0.25 }` ↔ `margin`), through
+    `promises.all_constants()` — the name is the mapping; runlog refuses a
+    run whose config lacks a registered constant or carries another value
+    (labkit 0.71). A constant registered in the protocol that this class
+    does not know fails loudly at import (TypeError: unexpected keyword).
+    """
+
+    margin: float               # [C1]: registered accuracy ≥ null accuracy + margin
+    max_empty: int              # [A1]: at most this many empty/unreadable answers on the registered lane;
+                                # the protocol derives it from the stop rule "more than 2 of 96 empty →
+                                # the parser is the finding" (LAB-028 An endpoint is a model slot); re-derive it when ITEMS changes
+    null_band_items: int        # [A2]: the null lane sits at chance ± this many ITEMS (counted, not a share)
+    model: str = MODEL          # alias from models.toml; runlog resolves it into models_resolved
+    # the instrument's version: both prompts, so a reworded prompt is a
+    # different config even when every threshold stays
+    prompt_sha: str = hashlib.sha256((PROMPT + PROMPT_NULL).encode()).hexdigest()[:12]
+
+
+# The registered execution: thresholds from the protocol, nothing copied;
+# `--model` replaces one field.
+CONFIG = MeasureConfig(**promises.all_constants(promises.load(PROTOCOL)))
+
+
+def read_jsonl(path: Path) -> list[dict]:
+    """Input records; the `_meta` header line is documentation, not data."""
+    return batch.Store(path).records()
+
+
+def plan(items: list[dict]) -> list[dict]:
+    """One job per item per lane; `id` is the resume key (one line per model call)."""
+    # `**it` first: the lane-qualified id must win, or both lanes share one
+    # resume key and a resumed run skips the twin lane (found by a cold agent
+    # reading the stamp, 2026-10-05).
+    jobs = [{**it, "id": f"{lane}:{it['id']}", "lane": lane}
+            for lane in LANES for it in items]
+    if len({j["id"] for j in jobs}) != len(jobs):
+        raise ValueError("plan(): job ids are not unique — two lanes would share one resume key")
+    return jobs
+
+
+def render(j: dict) -> str:
+    """The ONE prompt renderer — `--show` prints it, `measure()` sends it (→ LAB-007 Render check before the instrument check)."""
+    return LANES[j["lane"]].format(text=j[TEXT_FIELD])
+
+
+def measure(model: str, jobs: list[dict], out: Path, prov: dict | None = None) -> None:
+    """Resume = same command again; the lock keeps a second writer out.
+    `prov` stamps every row with _prov (run id, model@digest, endpoint)."""
+    with batch.Store(out, prov=prov) as store:
+        todo = list(store.pending(jobs))
+        print(f"to measure: {len(todo)} of {len(jobs)}")
+        # Calls in parallel (labkit's complete_many, four workers): 24 serial
+        # `claude -p` calls took 103 s where nothing needed the order.
+        for chunk_start in range(0, len(todo), 40):
+            chunk = todo[chunk_start:chunk_start + 40]
+            answers = llm.complete_many(model, [render(j) for j in chunk])
+            if len(answers) != len(chunk):   # zip below would drop jobs silently (LAB-023)
+                raise RuntimeError(f"complete_many returned {len(answers)} answers for {len(chunk)} prompts")
+            for j, text in zip(chunk, answers):
+                store.append({**j, "answer": text})
+            print(f"  {min(chunk_start + 40, len(todo))}/{len(todo)}")
+
+
+def parse_answer(text: str) -> str | None:
+    """Model text -> gold label via ANSWERS, or None for empty/unreadable.
+    Empty is its own state, never folded into a label (→ LAB-030 Reasoning models); the first
+    token decides, a second line of explanation is ignored (→ LAB-023 No silent loss)."""
+    text = text.strip()
+    if not text:
+        return None
+    return ANSWERS.get(text.split()[0].rstrip(".,:;!"))
+
+
+def _counts(rows: list[dict]) -> tuple[int, int, int]:
+    """(correct, items, empty) — integers, so a band is compared exactly. The
+    denominator is every item of the lane: an empty or unreadable answer is
+    not correct, and is counted on its own (LAB-030 Reasoning models: empty
+    is its own state, never folded into a label). Over readable answers only,
+    both preflight audits of the cloud judge probe flagged it against "over
+    all twelve" (2026-10-14)."""
+    labels = [(parse_answer(r["answer"]), r["gold"]) for r in rows]
+    empty = sum(1 for got, _ in labels if got is None)
+    return sum(1 for got, gold in labels if got is not None and got == gold), len(rows), empty
+
+
+def _accuracy(rows: list[dict]) -> tuple[float, int]:
+    """(accuracy over every item of the lane, number of empty/unreadable)."""
+    correct, items, empty = _counts(rows)
+    return correct / items, empty
+
+
+def _within_chance(rows: list[dict], items: int) -> bool:
+    """Is the lane at chance ± `items` items? Compared in item counts:
+    |correct - n/2| <= items, written as |2·correct - n| <= 2·items.
+    In shares the band was asymmetric in floating point — 7/12 fell out of
+    "0.5 ± one item" while 5/12 stayed in (found by an agent audit,
+    2026-10-06; labkit-paper benchmark stage)."""
+    correct, n, _ = _counts(rows)
+    return n > 0 and abs(2 * correct - n) <= 2 * items
+
+
+def _at_least(reg: list[dict], null: list[dict], margin: float) -> bool:
+    """[C1] exactly: correct/items of the registered lane >= that of the null
+    lane + margin, in fractions (margin as written, 0.25 = 1/4). In floats the
+    bar sat one ulp high — 5/12 + 0.25 > 8/12 — so a lane exactly at null +
+    margin failed (found by the preflight audit of a cold Sonnet probe,
+    2026-10-14; the same class as `_within_chance`)."""
+    rc, rn, _ = _counts(reg)
+    nc, nn, _ = _counts(null)
+    return Fraction(rc, rn) >= Fraction(nc, nn) + Fraction(str(margin))
+
+
+def evaluate_rows(rows: list[dict], cfg: MeasureConfig = CONFIG) -> dict:
+    """THE experiment, as a pure function of the stored rows and the config — gates first.
+
+    Returns every registered id's keys on every lane:
+      a1_empty · a1_pass           admissibility: yield of the registered lane
+      a2_accuracy · a2_pass        admissibility: the null lane inside its band
+      c1_accuracy · c1_threshold · c1_pass   criterion: registered lane against null + cfg.margin
+      n_items · n_rows             yield (→ LAB-023 No silent loss)
+    A failed [A] reports its keys and no criterion verdict (`c1_pass` None)."""
+    if not rows:
+        raise ValueError("evaluate_rows(): no rows — refusing a number over nothing")
+    reg = [r for r in rows if r["lane"] == "registered"]
+    null = [r for r in rows if r["lane"] == "null"]
+    if not reg or not null:
+        raise ValueError("evaluate_rows(): both lanes must be in the same run (LAB-034 Null condition in the same run)")
+    reg_acc, reg_empty = _accuracy(reg)
+    null_acc, null_empty = _accuracy(null)
+    metrics: dict = {"n_items": len(reg), "n_rows": len(rows),
+                     "a1_empty": reg_empty, "a1_pass": reg_empty <= cfg.max_empty,
+                     "a2_accuracy": null_acc, "a2_empty": null_empty,
+                     # TODO: the band the protocol derived for the null — cfg.null_band_items
+                     # items around chance; a different expected rate needs its own count rule
+                     "a2_pass": _within_chance(null, cfg.null_band_items)}
+    admissible = metrics["a1_pass"] and metrics["a2_pass"]
+    if not admissible:
+        metrics.update({"c1_accuracy": reg_acc, "c1_threshold": None, "c1_pass": None})
+        return metrics
+    metrics.update({"c1_accuracy": reg_acc, "c1_threshold": null_acc + cfg.margin,
+                    "c1_pass": _at_least(reg, null, cfg.margin)})
+    return metrics
+
+
+def evaluate(out: Path, cfg: MeasureConfig, run=None) -> dict:
+    """Read the kept rows, print gates first, record the metrics on the run."""
+    metrics = evaluate_rows(read_jsonl(out), cfg)
+    for key in ("a1_pass", "a1_empty", "a2_accuracy", "a2_pass", "c1_accuracy", "c1_threshold", "c1_pass"):
+        print(f"  {key:<13} {metrics[key]}")
+    if run is not None:
+        run.metrics(**metrics, llm_retries=llm.retries())
+    return metrics
+
+
+def main() -> None:
+    ap = argparse.ArgumentParser(description=(__doc__ or "").splitlines()[0])
+    ap.add_argument("--model", default=MODEL)
+    mode = ap.add_mutually_exclusive_group()
+    mode.add_argument("--show", type=int, metavar="N", help="render N prompts per lane, no calls")
+    mode.add_argument("--probe", type=int, nargs="?", const=12, metavar="N",
+                      help="instrument check: N items per lane through the REAL pipeline, "
+                           "throwaway output, prints parser cases to paste into the test")
+    mode.add_argument("--eval-only", action="store_true")
+    args = ap.parse_args()
+    cfg = replace(CONFIG, model=args.model)   # the one field the command line may set
+    items = read_jsonl(ITEMS)
+
+    if args.show is not None:          # `is not None`: `--show 0` must not start a paid run
+        print("===== config (what a run writes to config.json)")
+        for key, value in asdict(cfg).items():
+            print(f"  {key:<16} {value}")
+        for lane in LANES:
+            for j in [x for x in plan(items) if x["lane"] == lane][:args.show]:
+                print(f"===== {j['id']}\n{render(j)}")
+        return
+
+    if args.probe is not None:
+        # Throwaway: own output file, NO runlog (→ LAB-008 Instrument check before freezing) — the moment a
+        # number is kept, it is a run.
+        out = OUT.with_name(OUT.stem + "_probe.jsonl")
+        # with case classes: one case per class; without: the first N items
+        probe_ids = set(one_per_class())
+        jobs = [x for lane in LANES
+                for x in [y for y in plan(items) if y["lane"] == lane
+                          and (not probe_ids or y["id"].split(":", 1)[1] in probe_ids)][:args.probe]]
+        measure(args.model, jobs, out)
+        rows = read_jsonl(out)
+        for r in rows:
+            print(f"{r['id']:<28} {r['answer']!r:<40} -> {parse_answer(r['answer'])!r} (gold {r['gold']})")
+        print("\n# parser cases — paste into tests/test_<NN>_causal-claims-judge.py PARSER_CASES:")
+        for r in rows:
+            print(f"    ({r['answer']!r}, {parse_answer(r['answer'])!r}),")
+        return
+
+    if args.eval_only:
+        evaluate(OUT, cfg)
+        return
+
+    # The whole config, never a hand-picked subset: a field added above is
+    # recorded without anyone remembering to list it. `data=` freezes the
+    # items; the prompts are in prompt_sha.
+    config = asdict(cfg)
+    # long=True declares the full run. At cost = "seconds" runlog wants the
+    # registration written (question · criterion · admissibility · cost) and
+    # lets the run start in an agent's foreground shell; at minutes/hours
+    # the protocol must be frozen with the preflight audit stamped and the
+    # run detached (`runlog start <area> -- …`; scar 2026-08-13). `data=` freezes
+    # the source — finalize refuses a run of seconds without it.
+    with runlog.run("causal-claims-judge", config=config, base_dir=AREA, data={"prepared": ITEMS},
+                    long=True, protocol=PROTOCOL.name) as run:
+        run.output(OUT)
+        measure(args.model, plan(items), OUT,
+                prov={**llm.provenance(args.model), "run": run.run_id})
+        evaluate(OUT, cfg, run)
+        print(f"run: {run.run_id}  → protocol-fill {PROTOCOL.name} --from-run {run.run_id}  "
+              f"(writes the Answer, Result and Runs lines from metrics.json)")
+
+
+if __name__ == "__main__":
+    main()

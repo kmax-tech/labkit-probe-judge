@@ -1,0 +1,45 @@
+# written by labkit-audit — decide each finding: set status and reason
+[audit]
+date = "2026-10-14T16:43"
+mode = "analysis"
+model = "opus"
+scope_sha = "af1fa5a47ce7"
+blockers = 0
+warnings = 2
+notes = 4
+
+[[finding]]
+grade = "WARNING"
+text = "WARNING · experiments/01-causal-claims-judge/scripts/01_measure.py:251 · The denominator is the number of rows present in the lane (`len(rows)`, and `n_items = len(reg)` at :298), not the 12 registered items. Nothing checks that every item id from ITEMS appears exactly once per lane. · If an interrupted or resumed OUT holds 11 registered rows with 9 correct, c1_accuracy reports 9/11 = 0.818 and c1_pass is True. Over all 12 items the registered rule gives 9/12, and an item missing from the null lane moves c1_threshold the same way. This sample is clean (output/causal-claims-judge.jsonl:1–24, 12 distinct ids per lane), so there is no influence on this run. Assignment: confirm from labkit.batch that `Store.records()` returns one row per id and does not keep duplicate appends. · LAB-015 Preflight audit before freezing (scar: Criterion ≠ code — the registered \"over all 12 items\") · take the denominator from ITEMS and refuse a lane whose ids are not exactly the item ids."
+status = "accepted"
+reason = "Checked on the kept run: 24 rows, 12 distinct ids per lane (output/causal-claims-judge.jsonl). No duplicate or missing item on this run; the denominator rule is unchanged."
+
+[[finding]]
+grade = "WARNING"
+text = "WARNING · experiments/01-causal-claims-judge/scripts/01_measure.py:308 · c1_pass rests on one unseeded draw per item at the CLI's default sampling. config.json records no temperature or seed, and the spread is never measured. · c1_pass = True comes from 10/12 against a bar of 9/12. The two misses are both not_causal items answered Yes (output/causal-claims-judge.jsonl:8 c08, :12 c12), so two more such flips in a repeat give 8/12 and c1_pass = False. Assignment: rerun the same command k times on a fresh OUT name and report the distribution of registered-lane correct counts against 9. · LAB-015 Preflight audit before freezing (scar: Spread unknown, LAB-036 Validate) · measure run-to-run spread with repeated runs and state it next to c1_pass; record the effective sampling settings in config.json."
+status = "accepted"
+reason = "Stated as the main limit, not fixed in this lane: one unseeded draw per item, and the registered bar is 9 of 12. Two more not_causal misses would fail C1. The next step is repeat runs on fresh output names; this run does not claim a spread."
+
+[[finding]]
+grade = "NOTE"
+text = "NOTE · experiments/01-causal-claims-judge/scripts/01_measure.py:239 · The parser is case-sensitive and strips only trailing punctuation. `yes`, `YES` and `**Yes**` all resolve to None. · If the model drifts to lowercase on the null lane, a2_accuracy drops to 0/12 and A2 withholds C1. On the registered lane each such answer lowers c1_accuracy and raises a1_empty. All 24 answers in this sample are exactly `Yes` or `No` (jsonl:1–24), so this cannot be triggered now. · LAB-015 Preflight audit before freezing (scar: Parser without fixture test — the 2026-09-09 capitalisation flip) · normalise case and surrounding markup before the ANSWERS lookup, held by fixture cases."
+status = "accepted"
+reason = "The parser is exact-vocabulary by registration. All 24 answers in this run are exactly Yes or No, so the case cannot arise here; registered as a note for a future run."
+
+[[finding]]
+grade = "NOTE"
+text = "NOTE · experiments/01-causal-claims-judge/scripts/01_measure.py:267 · `_within_chance` centres the A2 band on n/2. The protocol's expectation is the gold share of the class Yes maps to (6/12), and the stamped TODO at :301 was left unresolved. · If the item set becomes unbalanced, for example 8 causal of 12, a constant-Yes null lane scores 8/12 and the code centres on 6. A2 then judges against the wrong anchor and c1_threshold sits off-chance. With the current 6/6 gold both give 6, so this cannot be triggered now. · LAB-015 Preflight audit before freezing (scar: Gate without anchor/resolution) · derive the A2 centre from the gold count of the Yes-mapped class."
+status = "accepted"
+reason = "Gold is 6 causal and 6 not_causal (counted from data/raw/claims.jsonl), so the centre n/2 equals the gold share of Yes. The formula is the one frozen; a different item set would need its own centre."
+
+[[finding]]
+grade = "NOTE"
+text = "NOTE · experiments/01-causal-claims-judge/scripts/01_measure.py:308 · c1_threshold is reported as a float sum, while c1_pass is decided in Fractions. · At null 5/12 with 8/12 registered, metrics.json shows c1_accuracy 0.6666666666666666 below c1_threshold 0.6666666666666667, yet c1_pass is True. A reader of the reported pair sees a contradiction. Here 0.5 + 0.25 is exact, so this cannot be triggered now. · new class (reported threshold ≠ compared threshold) · report c1_threshold from the same exact computation `_at_least` uses."
+status = "deferred"
+reason = "The reported float threshold can differ from the Fraction comparison only off the registered 0.25 grid. Not triggered by this run (0.5 + 0.25 is exact here). Left for the next code change, which would also change the scope sha."
+
+[[finding]]
+grade = "NOTE"
+text = "NOTE · experiments/01-causal-claims-judge/scripts/01_measure.py:… (probe block, `--probe` print) · The probe tells the reader to paste cases into `tests/test_<NN>_causal-claims-judge.py PARSER_CASES`, but the protocol (PROTOCOL-causal-claims-judge.md:106) cites PROBE_CASES in tests/test_01_causal_claims_judge.py. The test file is not in this audit's scope. · If the pasted cases sit under a name the test does not read, a parser regression changes a1_empty and c1_accuracy without a failing test. Assignment: supply tests/test_01_causal_claims_judge.py and confirm that it asserts the four real probe answers through `parse_answer`. · LAB-015 Preflight audit before freezing (scar: Parser without fixture test) · align the printed target name with the test's actual case table."
+status = "accepted"
+reason = "Probe print text only: the probe cases are the PROBE_CASES in tests/test_01_causal_claims_judge.py, asserted by the test. Naming the printed target differently changes no number, so it is recorded here rather than re-audited."

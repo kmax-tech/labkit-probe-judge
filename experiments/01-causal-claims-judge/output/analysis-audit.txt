@@ -1,0 +1,36 @@
+labkit-audit: analysis · PROTOCOL-causal-claims-judge.md · 3 code file(s) in full, 0 indexed · opus · 81 kB
+labkit-audit: tokens · prompt 32,360 (1,382 cached) · output 13,533 · 0.52 USD
+WARNING · experiments/01-causal-claims-judge/scripts/01_measure.py:251 · The denominator is the number of rows present in the lane (`len(rows)`, and `n_items = len(reg)` at :298), not the 12 registered items. Nothing checks that every item id from ITEMS appears exactly once per lane. · If an interrupted or resumed OUT holds 11 registered rows with 9 correct, c1_accuracy reports 9/11 = 0.818 and c1_pass is True. Over all 12 items the registered rule gives 9/12, and an item missing from the null lane moves c1_threshold the same way. This sample is clean (output/causal-claims-judge.jsonl:1–24, 12 distinct ids per lane), so there is no influence on this run. Assignment: confirm from labkit.batch that `Store.records()` returns one row per id and does not keep duplicate appends. · LAB-015 Preflight audit before freezing (scar: Criterion ≠ code — the registered "over all 12 items") · take the denominator from ITEMS and refuse a lane whose ids are not exactly the item ids.
+
+WARNING · experiments/01-causal-claims-judge/scripts/01_measure.py:308 · c1_pass rests on one unseeded draw per item at the CLI's default sampling. config.json records no temperature or seed, and the spread is never measured. · c1_pass = True comes from 10/12 against a bar of 9/12. The two misses are both not_causal items answered Yes (output/causal-claims-judge.jsonl:8 c08, :12 c12), so two more such flips in a repeat give 8/12 and c1_pass = False. Assignment: rerun the same command k times on a fresh OUT name and report the distribution of registered-lane correct counts against 9. · LAB-015 Preflight audit before freezing (scar: Spread unknown, LAB-036 Validate) · measure run-to-run spread with repeated runs and state it next to c1_pass; record the effective sampling settings in config.json.
+
+NOTE · experiments/01-causal-claims-judge/scripts/01_measure.py:239 · The parser is case-sensitive and strips only trailing punctuation. `yes`, `YES` and `**Yes**` all resolve to None. · If the model drifts to lowercase on the null lane, a2_accuracy drops to 0/12 and A2 withholds C1. On the registered lane each such answer lowers c1_accuracy and raises a1_empty. All 24 answers in this sample are exactly `Yes` or `No` (jsonl:1–24), so this cannot be triggered now. · LAB-015 Preflight audit before freezing (scar: Parser without fixture test — the 2026-09-09 capitalisation flip) · normalise case and surrounding markup before the ANSWERS lookup, held by fixture cases.
+
+NOTE · experiments/01-causal-claims-judge/scripts/01_measure.py:267 · `_within_chance` centres the A2 band on n/2. The protocol's expectation is the gold share of the class Yes maps to (6/12), and the stamped TODO at :301 was left unresolved. · If the item set becomes unbalanced, for example 8 causal of 12, a constant-Yes null lane scores 8/12 and the code centres on 6. A2 then judges against the wrong anchor and c1_threshold sits off-chance. With the current 6/6 gold both give 6, so this cannot be triggered now. · LAB-015 Preflight audit before freezing (scar: Gate without anchor/resolution) · derive the A2 centre from the gold count of the Yes-mapped class.
+
+NOTE · experiments/01-causal-claims-judge/scripts/01_measure.py:308 · c1_threshold is reported as a float sum, while c1_pass is decided in Fractions. · At null 5/12 with 8/12 registered, metrics.json shows c1_accuracy 0.6666666666666666 below c1_threshold 0.6666666666666667, yet c1_pass is True. A reader of the reported pair sees a contradiction. Here 0.5 + 0.25 is exact, so this cannot be triggered now. · new class (reported threshold ≠ compared threshold) · report c1_threshold from the same exact computation `_at_least` uses.
+
+NOTE · experiments/01-causal-claims-judge/scripts/01_measure.py:… (probe block, `--probe` print) · The probe tells the reader to paste cases into `tests/test_<NN>_causal-claims-judge.py PARSER_CASES`, but the protocol (PROTOCOL-causal-claims-judge.md:106) cites PROBE_CASES in tests/test_01_causal_claims_judge.py. The test file is not in this audit's scope. · If the pasted cases sit under a name the test does not read, a parser regression changes a1_empty and c1_accuracy without a failing test. Assignment: supply tests/test_01_causal_claims_judge.py and confirm that it asserts the four real probe answers through `parse_answer`. · LAB-015 Preflight audit before freezing (scar: Parser without fixture test) · align the printed target name with the test's actual case table.
+
+READ · experiments/01-causal-claims-judge/PROTOCOL-causal-claims-judge.md:5 · The Summary opens with a `·`-style chain of ten metric keys, floats and a run_id instead of the result in words. · Write: "haiku judged 10 of 12 sentences correctly; 9 were needed (null 6/12 + 3); C1 passes." Move the keys to the Answer field.
+
+READ · experiments/01-causal-claims-judge/PROTOCOL-causal-claims-judge.md:6 · Limits, Next step, Question † and Did † (lines 6–11) still hold stamped placeholders in a written-back protocol. · Fill each with one sentence, Question first, as its own guidance says.
+
+READ · experiments/01-causal-claims-judge/PROTOCOL-causal-claims-judge.md:33 · Raw output, Interpretation, Outcome, Rival check, Caps/drops and Analysis audit (lines 33–41) are placeholders, although the run carries a telling pattern: both misses are not_causal sentences answered Yes (c08, c12). · Quote those two prompt+answer pairs under Raw output, and state once under Rival check what they mean for rival (1).
+
+READ · experiments/01-causal-claims-judge/PROTOCOL-causal-claims-judge.md:30 · "Answer to the question" repeats the Summary chain word for word. · State only which ids passed (A1, A2, C1) and point to the run_id.
+
+READ · experiments/01-causal-claims-judge/PROTOCOL-causal-claims-judge.md:32 · "none yet (not frozen)" contradicts `frozen = true` in the head. Line 108 still says "no model call has been made" after the probe and the kept run. · Rewrite both in past tense against what was done: frozen, probe, run 2026-10-14T16-40-15_5a4d.
+
+READ · experiments/01-causal-claims-judge/PROTOCOL-causal-claims-judge.md:86 · The same quantity is called "noise ceiling" here and "noise floor" at line 23 and in the script. · Use one term throughout.
+
+READ · experiments/01-causal-claims-judge/PROTOCOL-causal-claims-judge.md:87 · "(the registered values were written for 96)" leaves a reader unsure which values were registered for this 12-item set. · Drop the parenthesis or say "derived for 12 items; an earlier template assumed 96".
+
+verdict: 0 blockers, 2 warnings, 4 notes
+scope:
+experiments/01-causal-claims-judge/scripts/00_prepare.py
+experiments/01-causal-claims-judge/scripts/01_measure.py
+experiments/01-causal-claims-judge/scripts/02_analyze.py
+
+stamp: 2026-10-14 · scope sha af1fa5a47ce7 · 6 findings (0 blockers, 2 warnings, 4 notes — decide each: fixed / accepted / deferred / dismissed)
+findings: experiments/01-causal-claims-judge/audits/2026-10-14T16-43-analysis.toml — set status (fixed / accepted / deferred / dismissed) and reason for each; preflight reads it

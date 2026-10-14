@@ -3,7 +3,7 @@
 ## Summary (after the run, for a person)
 
 - **Result:** n_items = 12, n_rows = 24, a1_empty = 0, a1_pass = True, a2_accuracy = 0.5, a2_empty = 0, a2_pass = True, c1_accuracy = 0.8333333333333334, c1_threshold = 0.75, c1_pass = True (run 2026-10-14T13-13-29_403f)
-- **Limits:** Twelve minimal-pair items, one draw each at default sampling; one flipped item changes the verdict (9/12 is the line).
+- **Limits:** Twelve minimal-pair items, one unseeded draw each; the pass line (9 of 12, moved by the null lane) sits one item from the result, and the probe saw the same items before the freeze.
 - **Next step:** Re-ask with repeated draws and more items before the number steers any decision; the agent audit is due before it goes into a note.
 - **Question †:** Does haiku recognise whether a sentence makes a causal claim?
 - **Did †:** Ran the frozen two-lane measurement once on all twelve sentences (24 calls, run 2026-10-14T13-13-29_403f).
@@ -27,13 +27,13 @@
 
 - **Answer to the question:** n_items = 12, n_rows = 24, a1_empty = 0, a1_pass = True, a2_accuracy = 0.5, a2_empty = 0, a2_pass = True, c1_accuracy = 0.8333333333333334, c1_threshold = 0.75, c1_pass = True (run 2026-10-14T13-13-29_403f)
 - **Answering run:** 2026-10-14T13-13-29_403f
-- **Deviations after freeze:** none.
+- **Deviations after freeze:** none after freeze. Disclosure: the instrument check (--probe) ran on all twelve items before the freeze and its answers were seen; margin 0.25 was the template value, stamped before any call and not changed.
 - **Raw output:** registered:c08 — prompt: 'Does the following sentence make a causal claim…?' Text: 'The build is twice as fast on the new machine with the new compiler.' → answer 'Yes' (gold not_causal, wrong). The other error is c12, also 'Yes'.
 - **Interpretation / next step:** Haiku reads explicit causal wording well but over-reads sentences that put a cause-like fact next to an outcome (c08, c12).
 - **Outcome †:** c1_accuracy 0.8333 (10 of 12) against a null lane at 0.5 (threshold 0.75): [C1] passes, [A1] and [A2] hold.
-- **Rival check †:** A Yes-bias would score 0.5, as the null lane did; the registered lane answered No on three of the six not_causal items, so it is not simply saying Yes.
+- **Rival check †:** A Yes-bias would score 0.5, as the null lane did; the registered lane answered No on four of the six not_causal items (c02, c04, c06, c10), so it is not simply saying Yes.
 - **Caps/drops †:** none — 0 empty answers, 0 retries, all 24 rows kept.
-- **Analysis audit †:** labkit-audit --mode analysis run after finalize; result recorded in audits/.
+- **Analysis audit †:** labkit-audit --mode analysis, opus, 2026-10-14, scope sha 27ac7fe22b47: 0 blockers, 3 warnings, 2 notes, decided in audits/2026-10-14T13-16-analysis.toml — the count in Rival check was corrected; the spread and probe-exposure points are accepted as limits.
 
 <!-- APPARATUS — this part gets LOOKED UP, not read. -->
 
@@ -101,12 +101,12 @@
 ## Follow-up
 
 - **Notes updated:** n/a — no notes touched.
-- **Prediction for the follow-up run †:** n/a — a single exploratory run, no follow-up planned.
+- **Prediction for the follow-up run †:** n/a — no follow-up planned; if one is run, repeated draws should keep c1_accuracy near 0.75 to 0.92.
 
 
 ## Notes (by-catch: ideas, follow-up experiments — cheap now, expensive later)
 
-- <…>
+- none
 
 ## Head (read by the checks)
 

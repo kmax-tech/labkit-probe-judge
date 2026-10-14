@@ -1,0 +1,39 @@
+# written by labkit-audit — decide each finding: set status and reason
+[audit]
+date = "2026-10-14T13:16"
+mode = "analysis"
+model = "opus"
+scope_sha = "27ac7fe22b47"
+blockers = 0
+warnings = 3
+notes = 2
+
+[[finding]]
+grade = "WARNING"
+text = "WARNING · experiments/01-causal-claims-judge/PROTOCOL-causal-claims-judge.md:34 · Rival check states the registered lane \"answered No on three of the six not_causal items\"; the rows show four (c02, c04, c06, c10), with c08 and c12 as the only Yes errors · the retyped count in the Rival check is wrong against output/causal-claims-judge.jsonl:2, :4, :6, :10 (answer \"No\", gold not_causal) and contradicts Outcome's own 10 of 12 · new class (hand-retyped count in a result field, not generated from the rows) · generate the per-class No/Yes counts from the rows (or drop the count) and write them back once"
+status = "fixed"
+reason = "count corrected to four in Rival check"
+
+[[finding]]
+grade = "WARNING"
+text = "WARNING · experiments/01-causal-claims-judge/scripts/01_measure.py:290 · c1_pass is one unseeded draw per item on both lanes, and the threshold moves with the null lane's own draws (c1_threshold = null_acc + margin), so a single vote on the English question shifts the bar by 1/12 · c1_pass flips from True to False if a re-draw costs one registered item (10/12 → 9/12) and the null lane answers \"No\" once on a not_causal item (6/12 → 7/12, threshold 0.8333, A2 still passes) · assignment: rerun the same command k=5 times into separate output files and report the share of runs with c1_pass True and the spread of c1_accuracy and a2_accuracy · LAB-015 Preflight audit before freezing (scar row Spread unknown, LAB-036 Validate) · report the repeated-draw spread next to the frozen verdict before the number is promoted; the criterion itself stays as registered"
+status = "accepted"
+reason = "stated as a limit; repeated draws are the Next step, criterion stays as registered"
+
+[[finding]]
+grade = "WARNING"
+text = "WARNING · experiments/01-causal-claims-judge/scripts/01_measure.py:310 · `--probe` defaults to const=12 = the whole item set, and the probe prints every answer next to its gold (:339); the protocol confirms the probe ran \"on all twelve items per lane\" (PROTOCOL:90) before the freeze, so the registered outcome was visible before margin 0.25 was frozen · c1_pass is presented as a pre-registered verdict, yet the instrument check showed every registered answer with its gold before freeze, so whether margin and threshold were fixed blind cannot be shown from the protocol · assignment: compare the commit that set `margin = 0.25` in the [[promise]] table with the mtime/commit of output/causal-claims-judge_probe.jsonl; if the margin came later, the verdict is post-hoc · new class (instrument check consumes the full test set before the criterion freezes) · cap the probe below the item set (or on items outside the measured set) and state in Deviations whether the probe's answers were seen before the margin was written"
+status = "accepted"
+reason = "probe saw all twelve items; margin 0.25 was the stamped template value, disclosed in Deviations"
+
+[[finding]]
+grade = "NOTE"
+text = "NOTE · experiments/01-causal-claims-judge/scripts/01_measure.py:260 · `_within_chance` centres the band on total/2, but the always-Yes null lane's expected accuracy is the causal share of gold; this only matches while gold is 6/6 · if ITEMS change to an unbalanced gold set (e.g. 7 causal / 5 not_causal), a2_pass compares a lane expected at 7/12 against a centre of 6/12 and withholds or grants [C1] on gold balance alone · LAB-015 Preflight audit before freezing (scar row Gate without anchor/resolution) · derive the band centre from the gold causal count of the items, not from len(rows)/2"
+status = "deferred"
+reason = "band centre equals total/2 only while gold is balanced; the data are fixed at 6/6"
+
+[[finding]]
+grade = "NOTE"
+text = "NOTE · experiments/01-causal-claims-judge/scripts/01_measure.py:280 · n_items and the accuracy denominator come from the rows on disk, not from ITEMS; a job that never gets appended shrinks the denominator silently, while the protocol (PROTOCOL:73) says c1_accuracy is over all twelve · if a call fails without a row being written, c1_accuracy is computed over 11 and still reports a verdict; whether that can happen depends on labkit/llm.py `complete_many` on error (returns \"\" vs. raises vs. drops) — assignment: caller supplies labkit/llm.py (complete_many) · LAB-015 Preflight audit before freezing (scar row Parser without fixture test: drops uncounted) · take the denominator from ITEMS per lane and refuse evaluation when a lane lacks an item id"
+status = "deferred"
+reason = "rows are written for every job in this run (24 of 24, a1_empty 0); denominator from ITEMS later"

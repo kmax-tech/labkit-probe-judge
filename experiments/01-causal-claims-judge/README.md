@@ -2,8 +2,7 @@
 
 *Self-contained: data, scripts, output and this description live here.*
 
-**The one question.** <one sentence — the same question as in the protocol's
-Intent; if it needs an "and", it is two experiments>
+**The one question.** Does the model behind the alias haiku recognise whether a sentence makes a causal claim?
 
 <!-- labkit:route -->
 **Trace it.**
@@ -16,10 +15,7 @@ Intent; if it needs an "and", it is two experiments>
 
 ## Contract
 
-**What `evaluate_rows()` returns.** <per registered promise its key, in the order
-of the decision — from the protocol's [[promise]] sentences, not from the
-skeleton: [A1] a1_pass …, [C1] c1_pass …, [B1] b1_branch; what comes back when
-an admissibility condition fails>. The formula lives once, in
+**What `evaluate_rows()` returns.** c1_pass (registered accuracy ≥ null accuracy + margin) · a1_pass (≤ max_empty unreadable answers) · a2_pass (null lane at chance ± 1 item); c1_pass is None when an admissibility condition fails. The formula lives once, in
 `scripts/01_measure.py` (`evaluate_rows()`); `02_analyze.py --check` and the
 test call it there, and `intent-check` holds the protocol's ids to these keys.
 
@@ -29,6 +25,6 @@ through `runlog` · `finalize` · `protocol-fill --from-run` writes the number b
 
 ## State
 
-- [ ] Registration written in the protocol (**before** the first run)
-- [ ] `--probe` read, parser cases in the test
-- [ ] Run, `protocol-fill --from-run`, `finalize` green
+- [x] Registration written in the protocol (**before** the first run)
+- [x] `--probe` read, parser cases in the test
+- [x] Run, `protocol-fill --from-run`, `finalize` green

@@ -1,0 +1,13 @@
+{"_meta": {"about": "One sentence per row, with a gold label for whether it makes a causal claim; for scoring a model's causal-claim judgment.", "fields": {"id": "unique per row", "text": "the item the model reads", "gold": "causal = the sentence asserts that one thing caused another | not_causal = it only reports things side by side or in sequence"}, "producer": "00_prepare.py"}}
+{"id": "c01", "text": "Because the road was icy, the bus arrived twenty minutes late.", "gold": "causal"}
+{"id": "c02", "text": "The bus arrived twenty minutes late, and the road was icy.", "gold": "not_causal"}
+{"id": "c03", "text": "Sales rose after the price was cut, so the cut drove the demand.", "gold": "causal"}
+{"id": "c04", "text": "Sales rose in March; the price was cut in the same month.", "gold": "not_causal"}
+{"id": "c05", "text": "The bridge collapsed due to corrosion in its main cables.", "gold": "causal"}
+{"id": "c06", "text": "The bridge was inspected in May and collapsed in June.", "gold": "not_causal"}
+{"id": "c07", "text": "Switching to the new compiler made the build twice as fast.", "gold": "causal"}
+{"id": "c08", "text": "The build is twice as fast on the new machine with the new compiler.", "gold": "not_causal"}
+{"id": "c09", "text": "Her headache went away because she drank water.", "gold": "causal"}
+{"id": "c10", "text": "Her headache went away; she had also drunk some water.", "gold": "not_causal"}
+{"id": "c11", "text": "The vaccine prevented the outbreak from spreading beyond the village.", "gold": "causal"}
+{"id": "c12", "text": "The outbreak stayed within the village, where most people were vaccinated.", "gold": "not_causal"}

@@ -1,5 +1,5 @@
 #!/bin/sh
-# installed by labkit-hooks 0.89.0 — reinstall: .venv/bin/labkit-hooks install
+# installed by labkit-hooks 0.90.0 — reinstall: .venv/bin/labkit-hooks install
 # Escape hatch for a deliberate exception: git commit --no-verify
 
 fail=0

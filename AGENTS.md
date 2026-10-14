@@ -61,7 +61,12 @@ fields, no reading of labkit's source.
    (LAB-016 Resolution check before freezing).
 7. `preflight <area>`, then the preflight audit (`labkit-audit <area> --mode
    preflight`); decide the findings, the line with `scope sha` into the head
-   (LAB-015 Preflight audit before freezing).
+   (LAB-015 Preflight audit before freezing). A fix changes the stamp: audit
+   the fixed code again before freezing — the head's `scope sha` must be one
+   an audit record saw. An audit takes minutes, longer
+   than many harnesses let a foreground command run: start it with your
+   harness's background mechanism and wait for that task to end — not a
+   `pgrep` loop, which finds its own command line and never ends.
 8. `labkit-init exp <name> --report`, fill the † fields, only now
    `frozen = true` (LAB-011 Required-field check).
 9. Commit first, then pilot → run, always through `runlog`; resume = the same
@@ -86,7 +91,7 @@ fields, no reading of labkit's source.
   spawns has it (Codex: `[shell_environment_policy] set = {
   LABKIT_FOREGROUND_TIMEOUT_S = "N" }` in `.codex/config.toml`; Claude Code
   is recognised without it). A long run then refuses the foreground and
-  asks for `runlog start -- <cmd>` instead of dying mid-run.
+  asks for `runlog start <area> -- <cmd>` instead of dying mid-run.
 
 ## Layout
 

@@ -84,7 +84,7 @@ label with `protocol-fill PROTOCOL-<name>.md "<label>" "<value>"`.*
 ```toml
 [protocol]
 standard = "0.19"
-id = "p-4e826cbd37a0451a"
+id = "p-250f12a9d1be4b35"
 type = "<exploratory | confirmatory>"
 cost = "minutes"
 frozen = false

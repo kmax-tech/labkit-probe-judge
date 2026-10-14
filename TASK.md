@@ -1,0 +1,39 @@
+# TASK — one kept number, with a model in the loop
+
+You are a researcher new to this lab repository. Work only inside this
+directory; use `.venv/bin/python`. Every `.venv/bin/…` path is relative to
+the repo root: run commands from there, not from an area directory. You
+may commit (never push). Do not ask questions; make reasonable choices and
+note them in your report.
+
+**The question.** Does the model behind the alias `haiku` (see
+`models.toml`; it is called through `labkit.llm.complete`, never directly)
+recognise whether a sentence makes a **causal claim**? The items are in
+`data/raw/claims.jsonl`: twelve rows with `id`, `text` and the gold label
+`gold` (`causal` | `not_causal`). The kept number is the model's
+**accuracy against gold** over all twelve, in the run's `metrics.json`
+under the key `c1_accuracy`, alongside whatever the repo's rules demand
+of a measurement with a model (a null condition in the same run, the
+registered criterion, the prompt in the protocol). Twelve calls take
+about a minute. The area
+`experiments/01-causal-claims-judge/` is already stamped for it. Its protocol head says `cost = "minutes"`: the number is owed at that tier — keep it, and follow the lane AGENTS.md gives for it.
+
+Follow the repo's own rules: `AGENTS.md` is in your context already (as a
+session loads it), the lab standard holds the long form
+(`python -m labkit.rules show LAB-nnn`) — read what you need, no more.
+
+**The log** matters as much as the number. Append to `/Users/max/projects/labkit-probe-judge-cloud.log.md` ONE line
+BEFORE each step (`touch` it first; append with `>>`):
+
+    HH:MM:SS · <tag> · <the step, in a few words>
+
+tags: `read` (a file you open) · `run` (a command) · `edit` (a file you
+write) · `unsure` (the rules leave you guessing) · `gate` (a check, hook
+or refusal makes you change course). `date '+%H:%M:%S'` gives the time.
+Every step gets a line; the log is the measurement.
+
+**Report** when done, with these headings: (1) the number, the run_id and
+where the number lives · (2) files read with line counts, commands run,
+edits made, wall-clock · (3) the three biggest time sinks, each with the
+concrete cause · (4) what you had to guess · (5) what you would cut so
+that this takes under 5 minutes. Honest, not a success story.

@@ -76,8 +76,12 @@ def build() -> tuple[list[dict], dict]:
             missing = [k for k in FIELDS if k not in row]
             if missing:
                 raise SystemExit(f"{SOURCE.name}:{n}: row lacks {missing}")
+            if row["gold"] not in ("causal", "not_causal"):
+                raise SystemExit(f"{SOURCE.name}:{n}: gold {row['gold']!r} is neither causal nor not_causal")
             items.append({k: row[k] for k in FIELDS})
-    return items, {"rows read": len(items)}
+    return items, {"rows read": len(items),
+                   "gold causal": sum(i["gold"] == "causal" for i in items),
+                   "gold not_causal": sum(i["gold"] == "not_causal" for i in items)}
 
 
 def audit(items: list[dict], yields: dict) -> None:

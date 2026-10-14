@@ -5,6 +5,11 @@
 - **Result:** <the answer to the question above, in at most two plain sentences…>
 - **Limits:** <how far it holds, one sentence…>
 - **Next step:** <what follows…>
+- **Question †:** <the Intent's question in plain words, first — the Result
+  below is its answer (a person reading only the Summary did not recognise
+  the Result as the answer, 2026-10-08)>
+- **Did †:** <what was done, one sentence — for a reader with no context>
+
 
 ## Intent (before the run)
 
@@ -15,6 +20,10 @@
 - **Registered branch:** n/a — no branch hangs on the result.
 - **Timebox:** 1h
 - **Split touched:** n/a — no split; all twelve items are measured.
+- **Why this design †:** Two lanes in one run: the null lane (an English-language question whose true answer is Yes for every item) fixes the noise floor, so the registered lane is judged against it and not against 0.5 by assumption.
+- **Rival explanations †:** A Yes-bias in the model would inflate the registered lane on the causal half; the null lane (always Yes) scores 0.5 and so shows what a pure Yes-bias earns.
+- **Out of scope †:** Other models, other phrasings of the question, harder causal cues (implicit causation), repeated draws.
+
 
 ## Result (after the run — write back, don't go quiet)
 
@@ -26,6 +35,16 @@
 - **Deviations after freeze:** <"none", or what was changed after `frozen = true`…>
 - **Raw output:** <one real prompt+answer pair per finding>
 - **Interpretation / next step:** <one sentence…>
+- **Outcome †:** <expected or surprising — failures belong here>
+- **Rival check †:** <which rivals are ruled out, which still stand?>
+- **Caps/drops †:** <what was omitted or limited>
+- **Analysis audit †:** <date · scope sha · N findings — the audit of the
+  EVALUATION against the frozen criterion, before the number leaves; at
+  cost seconds due at promotion or when the number steers a decision
+  (→ LAB-050 Analysis audit before reporting, LAB-017 The number of audits follows the cost tier)>
+
+<!-- APPARATUS — this part gets LOOKED UP, not read. -->
+
 
 ## Context (self-contained)
 
@@ -59,8 +78,18 @@
 
 - **Model I/O:** in: the lane's prompt with the sentence; out: free text whose first word (Yes or No) is read; Yes = causal, No = not_causal.
 - **Null condition / anchors (in the same run):** A2: the null lane asks 'Is the following sentence written in English?' — true for every item, so a Yes-answering model scores the causal share, 6 of 12 = 0.5; target 0.5 ± 1 item.
-- **Exclusions / filters:** none — all twelve items are scored; empty or unreadable answers are counted (a1_empty), not dropped silently.
+- **Exclusions / filters:** none — all twelve items are scored; empty or unreadable answers count as not correct and stay in the denominator (a1_empty), so c1_accuracy is over all twelve.
 - **Unit:** one sentence judged once per lane.
+- **Gate labels (expected) †:** n/a — no gate labels beyond the three registered ids C1, A1, A2.
+- **Data preparation †:** scripts/00_prepare.py copies the twelve raw rows (id, text, gold) unchanged into data/prepared/claims_v1.jsonl and refuses any gold other than causal or not_causal.
+- **Meaning of the gold label †:** causal: the sentence asserts that one thing caused, produced or prevented another; not_causal: events only side by side or in sequence. Items are written as minimal pairs.
+- **Answer form + resolution †:** One word, Yes (→ causal) or No (→ not_causal); the first word is read, case and surrounding quotes ignored; twelve items resolve accuracy in steps of 1/12.
+- **How measured †:** accuracy against gold over all twelve items per lane (c1_accuracy, a2_accuracy); empty answers count as wrong.
+- **Validation †:** resolution check in tests/test_01_causal_claims_judge.py, render check with --show, instrument check with --probe, preflight audit by opus.
+- **Noise ceiling → threshold †:** The null lane (always Yes) expects 6/12 = 0.5; margin 0.25 requires 9/12 or better on the registered lane.
+- **Free knobs †:** none beyond the registered constants margin, max_empty, null_band_items; model fixed to haiku.
+- **Randomness controls †:** none — one draw per item per lane at the backend's default sampling; with twelve items a single flipped item can move the verdict (stated as a limit).
+
 
 ## Checks (render check → instrument check → pilot)
 
@@ -80,6 +109,8 @@
 ## Follow-up
 
 - **Notes updated:** <[[…]] — reconcile on contradiction>
+- **Prediction for the follow-up run †:** n/a — a single exploratory run, no follow-up planned.
+
 
 ## Notes (by-catch: ideas, follow-up experiments — cheap now, expensive later)
 
@@ -100,8 +131,8 @@ standard = "0.19"
 id = "p-4e826cbd37a0451a"
 type = "exploratory"
 cost = "minutes"
-frozen = false
-preflight_audit = ""
+frozen = true
+preflight_audit = "2026-10-14 opus preflight, scope sha 27ac7fe22b47 (audited at 041c2f50a1a5; the audit-driven fixes followed, each finding decided: 6 fixed, 2 accepted), 0 blockers"
 
 # The promises as data (labkit 0.71): one table per id — the key the run
 # reports, the sentence (the same as the Intent field), the code region, and
@@ -112,21 +143,21 @@ preflight_audit = ""
 [[promise]]
 id = "C1"
 key = "c1_pass"
-sentence = "<the criterion in one sentence: registered accuracy >= null accuracy + margin>"
+sentence = "[C1] registered-lane accuracy against gold is at least the null-lane accuracy plus margin (0.25)."
 scope = ["scripts/01_measure.py"]
 constants = { margin = 0.25 }
 
 [[promise]]
 id = "A1"
 key = "a1_pass"
-sentence = "<the yield condition: at most max_empty empty or unreadable answers on the registered lane>"
+sentence = "[A1] at most max_empty (2) empty or unreadable answers on the registered lane."
 scope = ["scripts/01_measure.py"]
 constants = { max_empty = 2 }
 
 [[promise]]
 id = "A2"
 key = "a2_pass"
-sentence = "<the null condition: the null lane sits at chance, within null_band_items items>"
+sentence = "[A2] the null lane sits at chance (6 of 12), within null_band_items (1) item."
 scope = ["scripts/01_measure.py"]
 constants = { null_band_items = 1 }
 ```

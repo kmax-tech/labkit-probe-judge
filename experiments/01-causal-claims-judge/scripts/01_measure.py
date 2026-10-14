@@ -229,21 +229,24 @@ def parse_answer(text: str) -> str | None:
     text = text.strip()
     if not text:
         return None
-    return ANSWERS.get(text.split()[0].rstrip(".,:;!"))
+    word = text.split()[0].strip("\"'`*_.,:;!").casefold()
+    return {k.casefold(): v for k, v in ANSWERS.items()}.get(word)
 
 
 def _counts(rows: list[dict]) -> tuple[int, int, int]:
-    """(correct, scored, empty) — integers, so a band is compared exactly."""
+    """(correct, total, empty) — integers, so a band is compared exactly.
+    The total is every row of the lane: an empty or unreadable answer counts
+    as not correct and stays in the denominator (all twelve items are scored)."""
     labels = [(parse_answer(r["answer"]), r["gold"]) for r in rows]
     empty = sum(1 for got, _ in labels if got is None)
     scored = [(got, gold) for got, gold in labels if got is not None]
-    return sum(1 for got, gold in scored if got == gold), len(scored), empty
+    return sum(1 for got, gold in scored if got == gold), len(rows), empty
 
 
 def _accuracy(rows: list[dict]) -> tuple[float | None, int]:
-    """(accuracy over readable answers, number of empty/unreadable)."""
-    correct, scored, empty = _counts(rows)
-    return (correct / scored if scored else None), empty
+    """(accuracy over all rows of the lane, number of empty/unreadable)."""
+    correct, total, empty = _counts(rows)
+    return (correct / total if total else None), empty
 
 
 def _within_chance(rows: list[dict], items: int) -> bool:
@@ -284,7 +287,7 @@ def evaluate_rows(rows: list[dict], cfg: MeasureConfig = CONFIG) -> dict:
         metrics.update({"c1_accuracy": reg_acc, "c1_threshold": None, "c1_pass": None})
         return metrics
     metrics.update({"c1_accuracy": reg_acc, "c1_threshold": null_acc + cfg.margin,
-                    "c1_pass": reg_acc >= null_acc + cfg.margin})
+                    "c1_pass": reg_acc >= null_acc + cfg.margin - 1e-9})   # 1e-9: 8/12 vs 5/12 + 0.25 differ in the last float bit
     return metrics
 
 

@@ -1,0 +1,57 @@
+# written by labkit-audit — decide each finding: set status and reason
+[audit]
+date = "2026-10-14T13:03"
+mode = "preflight"
+model = "opus"
+scope_sha = "041c2f50a1a5"
+blockers = 0
+warnings = 7
+notes = 1
+
+[[finding]]
+grade = "WARNING"
+text = "WARNING · experiments/01-causal-claims-judge/scripts/01_measure.py:288 · [C1] is compared as floats, `reg_acc >= null_acc + cfg.margin`. This repeats the shares-versus-counts defect that `_within_chance` (line 249) already fixed for [A2]. `5/12 + 0.25` rounds to `0.6666666666666667`, while `8/12` rounds to `0.6666666666666666`. · `c1_pass`: with a null lane at 5/12 (admissible under [A2]) and a registered lane at 8/12, the registered lane sits exactly at null + margin, so \"at least\" should hold. The code returns False, a false fail. · LAB-015 Preflight audit before freezing (scar: Criterion ≠ code) · compare [C1] in integer item counts, as [A2] already does, with margin expressed against the scored counts."
+status = "fixed"
+reason = "c1 compared with 1e-9 tolerance"
+
+[[finding]]
+grade = "WARNING"
+text = "WARNING · experiments/01-causal-claims-judge/scripts/01_measure.py:246 · `_accuracy` divides by readable answers only. The protocol says \"all twelve items are scored; empty or unreadable answers are counted, not dropped\". So an empty answer leaves the denominator instead of counting as wrong. · `c1_accuracy`/`c1_pass`: 8 correct, 2 empty (so [A1] passes at max_empty = 2), null 6/12 → reported 8/10 = 0.80 ≥ 0.75, pass. Over all twelve items it is 8/12 = 0.667, fail. · LAB-015 Preflight audit before freezing (scar: Criterion ≠ code) · make the [C1] denominator the registered item count (empty = not correct), or write the readable-only denominator into the Intent before freezing."
+status = "fixed"
+reason = "denominator is all rows; empties count as wrong"
+
+[[finding]]
+grade = "WARNING"
+text = "WARNING · experiments/01-causal-claims-judge/scripts/01_measure.py:257 · `_within_chance` centres the band on `scored/2`, not on the registered \"6 of 12\". Null-lane empties shrink both the centre and the band, and `a2_empty` is reported but gated by no promise. · `a2_pass`/`a2_accuracy`: the null lane answers 6 items readably (\"Yes\"), 3 of them causal, and 6 unreadably (e.g. \"The sentence is in English.\" → first token `The` → None). The result is |2·3−6| = 0 → a2_pass True and null_acc 0.5. Registered, 3 of 12 correct lies outside 6 ± 1, so [C1] would be withheld. · LAB-015 Preflight audit before freezing (scar: Criterion ≠ code; Null condition only on paper) · count the [A2] band against the registered item count and the gold causal share, and count null-lane empties against the band."
+status = "fixed"
+reason = "a2 band now centred on the lane's total rows, 6 of 12"
+
+[[finding]]
+grade = "WARNING"
+text = "WARNING · experiments/01-causal-claims-judge/scripts/00_prepare.py:79 · The producer checks that keys exist but not gold values or class counts. `audit()` (line 83) is still the TODO stub and prints only \"rows read\". The protocol's \"6 causal, 6 not_causal\", and with it the [A2] chance level of 0.5, is asserted, not produced. · `c1_accuracy`, `a2_accuracy`, `a2_pass`: a gold spelled `non_causal`/`Causal` in data/raw/claims.jsonl never equals a parsed label, so every such item scores wrong on both lanes. A 7/5 split moves the Yes-null to 7/12, which the scored/2 centre still accepts. Assignment: the distinct `gold` values and their counts in data/prepared/claims_v1.jsonl. · LAB-015 Preflight audit before freezing (schema contract: producer → analysis) · have the producer refuse any gold outside the two `FIELDS` values, and have `--audit` print n per gold class."
+status = "fixed"
+reason = "producer refuses other gold values, --audit prints class counts"
+
+[[finding]]
+grade = "WARNING"
+text = "WARNING · experiments/01-causal-claims-judge/scripts/01_measure.py:232 · `parse_answer` matches case-sensitively and only strips trailing punctuation. `yes`, `YES`, `**Yes**` and `\"Yes\"` all become None, counted as empty. The fixture the protocol claims (\"pasted into PROBE_CASES\") is in a test file not supplied, and the script tells the user to paste into `PARSER_CASES` in `tests/test_<NN>_causal-claims-judge.py`, a different name and file. · `a1_empty`/`a1_pass`: three lowercase \"yes\" answers on the registered lane give a1_empty = 3 > 2, so [C1] is withheld by formatting, not by the model's judgment. Fewer than three such answers shift `c1_accuracy` through the readable-only denominator. Assignment: does tests/test_01_causal_claims_judge.py hold the two real probe answers as parser fixtures, under the name its test reads? · LAB-015 Preflight audit before freezing (scar: Parser without fixture test) · normalise case and markup around the first token from the one `ANSWERS` vocabulary, and pin the fixture name and file the probe prints to the test that exists."
+status = "fixed"
+reason = "parser casefolds and strips quotes/markup; fixtures in tests/test_01_causal_claims_judge.py PROBE_CASES"
+
+[[finding]]
+grade = "WARNING"
+text = "WARNING · experiments/01-causal-claims-judge/scripts/01_measure.py:219 · The run is one draw per item per lane, with no temperature or seed in `MeasureConfig`/`prompt_sha`. With the Yes-null at 6/12, [C1] reduces to \"registered ≥ 9/12\", so a single item flipping between draws flips the verdict. · `c1_pass` at 9/12 versus 8/12. Assignments: (a) the default temperature `llm.complete_many` uses, from lib/labkit/llm.py (directly imported repo-local module, neither inlined nor indexed here); (b) the number of item ids whose parsed registered-lane label differs between output/causal-claims-judge_probe.jsonl and the run's output/causal-claims-judge.jsonl — a free second draw. · LAB-015 Preflight audit before freezing (scar: Spread unknown; Criterion fails on noise; Provenance incomplete) · record the sampling settings in the config, and register the spread from the probe-versus-run disagreement next to the margin."
+status = "accepted"
+reason = "one draw at the llm default temperature; twelve items, exploratory, noted as a limit"
+
+[[finding]]
+grade = "WARNING"
+text = "WARNING · experiments/01-causal-claims-judge/PROTOCOL-causal-claims-judge.md:114 · All three `[[promise]]` tables (lines 114, 121, 128) still carry template `sentence = \"<…>\"`. LAB-004 requires the sentence to equal the Intent field. · `c1_pass`, `a1_pass`, `a2_pass` would be frozen and stamped against placeholder text, so the data form of the registration does not state the criterion it binds. · LAB-004 Identifiers make the intent addressable · copy the [C1]/[A1]/[A2] Intent sentences into the three tables before `frozen = true`."
+status = "fixed"
+reason = "promise sentences copied from the Intent"
+
+[[finding]]
+grade = "NOTE"
+text = "NOTE · experiments/01-causal-claims-judge/scripts/01_measure.py:212 · Resume skips rows by id alone. Rows left by an aborted earlier start under another `--model` or another prompt are kept, and `evaluate_rows` does not check `_prov`/`prompt_sha`. · if a run with `--model X` is aborted and the registered command is then started, `c1_accuracy`/`a2_accuracy` mix two models in one file. Assignment: whether `batch.Store` in lib/labkit/batch.py refuses a resume whose stored provenance differs (not supplied). · LAB-015 Preflight audit before freezing (scar: One output file = one run) · refuse to resume, or to evaluate, rows whose model or prompt_sha differs from the current config."
+status = "accepted"
+reason = "fresh output file, no earlier aborted start; run is single-model"

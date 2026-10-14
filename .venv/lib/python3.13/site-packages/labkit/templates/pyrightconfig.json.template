@@ -1,0 +1,33 @@
+{
+  // Type-checker config for a lab repo. Stamped by labkit-init lab.
+  // pyright reads this file as JSONC, so these comments are legal.
+
+  // Shared helpers come from the pinned labkit package (venv below),
+  // imported directly; lib/ holds repo-local helpers (and, in legacy repos,
+  // the flat-import shims), reached via a sys.path insert — the layer rule
+  // of docs/coding-style.md. experiments/ is listed for older repos that keep helpers there.
+  "extraPaths": ["lib", "experiments"],
+
+  // Artefacts, not code under maintenance. runs/ holds the frozen
+  // script-source.py of every logged run — checking those reports each finding
+  // once per run and never stops reporting imports that have since been
+  // renamed. resources/templates/ is the snapshot copy of the helpers; without
+  // it, every helper exists twice.
+  "exclude": [
+    "**/__pycache__",
+    "**/runs",
+    "**/.venv",
+    "data",
+    "output",
+    "resources/templates"
+  ],
+
+  // Repo-level venv, the one the measure scripts call as ../../.venv/bin/python.
+  // No .venv yet? pyright prints one line to stderr and falls back to the
+  // ambient interpreter — drop these two keys if that bothers you.
+  "venvPath": ".",
+  "venv": ".venv",
+
+  "typeCheckingMode": "basic",
+  "reportMissingModuleSource": "none"
+}

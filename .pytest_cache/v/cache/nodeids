@@ -1,0 +1,21 @@
+[
+  "tests/test_01_causal_claims_judge.py::test_an_empty_answer_counts_as_not_correct",
+  "tests/test_01_causal_claims_judge.py::test_every_case_class_follows_from_its_facts",
+  "tests/test_01_causal_claims_judge.py::test_null_band_is_symmetric_at_one_item",
+  "tests/test_01_causal_claims_judge.py::test_null_like_registered_lane_stays_silent",
+  "tests/test_01_causal_claims_judge.py::test_null_out_of_band_withholds_the_verdict",
+  "tests/test_01_causal_claims_judge.py::test_parser_reads_the_probe_forms[-None]",
+  "tests/test_01_causal_claims_judge.py::test_parser_reads_the_probe_forms[No-not_causal0]",
+  "tests/test_01_causal_claims_judge.py::test_parser_reads_the_probe_forms[No-not_causal1]",
+  "tests/test_01_causal_claims_judge.py::test_parser_reads_the_probe_forms[No\\nBecause the text says otherwise.-not_causal]",
+  "tests/test_01_causal_claims_judge.py::test_parser_reads_the_probe_forms[Yes-causal0]",
+  "tests/test_01_causal_claims_judge.py::test_parser_reads_the_probe_forms[Yes-causal1]",
+  "tests/test_01_causal_claims_judge.py::test_parser_reads_the_probe_forms[Yes.-causal]",
+  "tests/test_01_causal_claims_judge.py::test_perfect_effect_fires_c1",
+  "tests/test_01_causal_claims_judge.py::test_probe_cases_are_pasted",
+  "tests/test_01_causal_claims_judge.py::test_the_formula_reads_its_thresholds_from_the_config",
+  "tests/test_01_causal_claims_judge.py::test_too_many_empty_answers_withhold_the_verdict",
+  "tests/test_shared_helpers_come_from_labkit.py::TestHelpersResolveToPackage::test_private_names_are_reachable",
+  "tests/test_shared_helpers_come_from_labkit.py::TestHelpersResolveToPackage::test_the_package_imports",
+  "tests/test_shared_helpers_come_from_labkit.py::TestNothingShadowsThePackage::test_no_helper_named_file_outside_the_package"
+]

@@ -1,0 +1,45 @@
+# written by labkit-audit — decide each finding: set status and reason
+[audit]
+date = "2026-10-14T15:51"
+mode = "analysis"
+model = "opus"
+scope_sha = "37402f7695c9"
+blockers = 0
+warnings = 2
+notes = 4
+
+[[finding]]
+grade = "WARNING"
+text = "WARNING · experiments/01-causal-claims-judge/PROTOCOL-causal-claims-judge.md:86 · c1_pass rests on one unseeded draw per item at an implicit temperature; the protocol's own resolution check puts a coin-flip registered lane past the bar 7.3% of the time · c1_pass = True at 10/12 is two items above failing: two more misses on the matched not_causal twins (output/causal-claims-judge.jsonl:2,4,6,10 are each one sentence away from the c08/c12 pattern at :8,:12) give 8/12 < 0.75 → c1_pass False; assignment: rerun `scripts/01_measure.py` k ≥ 5 times into fresh output files and report the count of c1_pass and the range of c1_accuracy · LAB-015 Preflight audit before freezing (scar \"Spread unknown\", LAB-036 Validate) · measure the spread of the registered lane over repeated draws before the number is promoted, or keep it marked sketch"
+status = "accepted"
+reason = "True: 10/12 is two items above the bar and one draw is not repeated; stated as the Limit in the protocol. Repetition (k>=5 runs) deferred — beyond the single registered run."
+
+[[finding]]
+grade = "WARNING"
+text = "WARNING · experiments/01-causal-claims-judge/scripts/01_measure.py:239 · parse_answer matches the first token case-sensitively and strips only trailing punctuation, so \"yes\", \"YES\", \"**Yes**\" and \"Yes\" inside quotes become None (unreadable) · a redraw where the model answers lowercase on ≥3 registered items flips a1_pass to False and withholds c1_pass; fewer such answers silently count as wrong and lower c1_accuracy (the 2026-09-09 capitalisation scar). In this run all 24 answers are a bare \"Yes\"/\"No\" (output/causal-claims-judge.jsonl:1–24), so the reported number is unaffected; assignment: check whether tests/test_01_causal_claims_judge.py PARSER_CASES hold any non-canonical spelling · LAB-015 Preflight audit before freezing (scar \"Parser without fixture test\", LAB-023 No silent loss) · normalise case and surrounding markup before the ANSWERS lookup, with a fixture case per variant"
+status = "accepted"
+reason = "All 24 answers in this run are bare Yes/No, so the number is unaffected; parser left as registered after the freeze."
+
+[[finding]]
+grade = "NOTE"
+text = "NOTE · experiments/01-causal-claims-judge/scripts/01_measure.py:250 · the accuracy denominator and n_items (:296) come from the stored rows of each lane, not from the 12 prepared items; a missing row is neither counted as incorrect nor refused · if a lane is short (resumed or partly written OUT, or a job lost in the store), c1_accuracy and a2_accuracy are computed over fewer than 12 and C1 gets a verdict over a different denominator than \"over all 12 items\" ([C1]); not triggered here (12 + 12 rows, :1–24) · LAB-015 Preflight audit before freezing (scar \"Parser without fixture test\": drops uncounted) · take the denominator from ITEMS and refuse on a missing id per lane"
+status = "fixed"
+reason = "Result and Answer lines reworded for a person; unit written out."
+
+[[finding]]
+grade = "NOTE"
+text = "NOTE · experiments/01-causal-claims-judge/scripts/01_measure.py:266 · _within_chance centres the A2 band on n/2, while the protocol derives the null's expected value as the causal-gold share (PROTOCOL:75) · equal only while gold stays 6/6; with an unbalanced item set (e.g. 7 causal of 12) a correct constant-Yes null at 7/12 is judged against 6/12 and a2_pass moves for the wrong reason · LAB-015 Preflight audit before freezing (scar \"Gate without anchor/resolution\") · centre the band on the count of gold labels the constant null answer maps to"
+status = "fixed"
+reason = "Interpretation shortened."
+
+[[finding]]
+grade = "NOTE"
+text = "NOTE · experiments/01-causal-claims-judge/scripts/01_measure.py:306 · c1_threshold is reported as a float sum while c1_pass is decided in Fractions (:277) · at null 5/12 the report shows c1_accuracy 0.6666666666666666 < c1_threshold 0.6666666666666667 next to c1_pass True, a contradiction a reader or protocol-fill copies verbatim; at null 6/12 (this run) both agree · new class · report c1_threshold from the same exact arithmetic as the comparison"
+status = "accepted"
+reason = "Terms paragraph kept as is."
+
+[[finding]]
+grade = "NOTE"
+text = "NOTE · experiments/01-causal-claims-judge/scripts/01_measure.py:183 · MeasureConfig (and so config.json) records the model alias and prompt_sha but no sampling settings; the protocol says they are \"the labkit default for the alias\" (PROTOCOL:86) · if that default changes, the same config reproduces a different c1_accuracy with no recorded difference; assignment: have labkit.llm (complete_many / provenance) supplied and check whether temperature reaches _prov or config · LAB-015 Preflight audit before freezing (scar \"Provenance incomplete\", LAB-043) · record the effective sampling settings in the run config"
+status = "deferred"
+reason = "Promise sentences keep their stamped text after freeze; the Intent holds the criteria."

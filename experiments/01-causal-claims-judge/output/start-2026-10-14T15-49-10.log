@@ -1,0 +1,10 @@
+to measure: 24 of 24
+  24/24
+  a1_pass       True
+  a1_empty      0
+  a2_accuracy   0.5
+  a2_pass       True
+  c1_accuracy   0.8333333333333334
+  c1_threshold  0.75
+  c1_pass       True
+run: 2026-10-14T15-49-10_4f76  → protocol-fill PROTOCOL-causal-claims-judge.md --from-run 2026-10-14T15-49-10_4f76  (writes the Answer, Result and Runs lines from metrics.json)

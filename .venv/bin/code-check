@@ -1,0 +1,6 @@
+#!/home/user/labkit-probe-judge/.venv/bin/python3
+import sys
+from labkit.code_check import cli
+if __name__ == '__main__':
+    sys.argv[0] = sys.argv[0].removesuffix('.exe')
+    sys.exit(cli())

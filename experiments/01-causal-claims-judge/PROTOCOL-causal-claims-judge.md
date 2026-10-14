@@ -2,9 +2,9 @@
 
 ## Summary (after the run, for a person)
 
-- **Result:** <the answer to the question above, in at most two plain sentences…>
-- **Limits:** <how far it holds, one sentence…>
-- **Next step:** <what follows…>
+- **Result:** Haiku judged 10 of 12 sentences correctly (c1_accuracy 0.8333, run 2026-10-14T15-49-10_4f76), above the bar of 0.75 (null 0.5 + margin 0.25): the criterion passes.
+- **Limits:** Twelve items, one draw, one prompt: one item moves accuracy by 8 percentage points (1/12), and the sampling spread is not measured.
+- **Next step:** none planned; a larger item set would be the next measurement.
 - **Question †:** Does haiku recognise whether a sentence makes a causal claim?
 - **Did †:** Ran 12 matched sentences through haiku in a registered and a null lane, 24 calls.
 
@@ -25,21 +25,15 @@
 
 ## Result (after the run — write back, don't go quiet)
 
-- **Answer to the question:** <per registered id its verdict, and the run_id…>
-- **Answering run:** none yet — the run `finalize` holds this protocol to,
-  written with the number by `protocol-fill PROTOCOL-<name>.md --from-run`
-  after `finalize`; `finalize` refuses any other run_id here (a readable
-  projection of `runs.bound_answering_run`, never a second binding)
-- **Deviations after freeze:** <"none", or what was changed after `frozen = true`…>
-- **Raw output:** <one real prompt+answer pair per finding>
-- **Interpretation / next step:** <one sentence…>
-- **Outcome †:** <expected or surprising — failures belong here>
-- **Rival check †:** <which rivals are ruled out, which still stand?>
-- **Caps/drops †:** <what was omitted or limited>
-- **Analysis audit †:** <date · scope sha · N findings — the audit of the
-  EVALUATION against the frozen criterion, before the number leaves; at
-  cost seconds due at promotion or when the number steers a decision
-  (→ LAB-050 Analysis audit before reporting, LAB-017 The number of audits follows the cost tier)>
+- **Answer to the question:** n_items = 12, n_rows = 24, a1_empty = 0, a1_pass = True, a2_accuracy = 0.5, a2_empty = 0, a2_pass = True, c1_accuracy = 0.8333333333333334, c1_threshold = 0.75, c1_pass = True (run 2026-10-14T15-49-10_4f76)
+- **Answering run:** 2026-10-14T15-49-10_4f76
+- **Deviations after freeze:** none.
+- **Raw output:** registered:c08 'Does the following text make a causal claim...? Text: The build is twice as fast on the new machine with the new compiler.' -> 'Yes' (gold not_causal).
+- **Interpretation / next step:** Both misses (c08, c12) are non-causal sentences that name a plausible cause next to the effect.
+- **Outcome †:** c1_accuracy 0.8333 (10/12) against null 0.5 + margin 0.25 = 0.75: C1 passes; A1 and A2 pass.
+- **Rival check †:** Not tested: surface cues could explain the hits; the two misses are both non-causal sentences that mention a possible cause.
+- **Caps/drops †:** none — 24 of 24 answers kept, 0 empty.
+- **Analysis audit †:** 2026-10-14T15-51 analysis audit: 0 blockers, 2 warnings (single draw, case-sensitive parser) accepted, 4 notes decided; see audits/.
 
 <!-- APPARATUS — this part gets LOOKED UP, not read. -->
 
@@ -102,7 +96,7 @@
 
 ## Runs (documented runs — via `runlog`, cite run_ids instead of retyping numbers)
 
-- <run_id> — <one sentence: what this run was>
+- 2026-10-14T15-49-10_4f76 — the kept run; its metrics.json is the number
 
 ## Follow-up
 

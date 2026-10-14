@@ -1,0 +1,76 @@
+{
+  // VS Code launch configurations for a lab repo. Stamped by labkit-init lab.
+  // Debug an experiment area without a paid run: open the area's
+  // scripts/01_measure.py, set a breakpoint (click left of the line, or
+  // write `breakpoint()`), press F5 and pick a configuration. Every entry
+  // takes the OPEN file as the program and its area as cwd, so one file
+  // serves every area; the interpreter is the repo's .venv, the same the
+  // terminal uses. --eval-only is the door for "why is this key True?":
+  // the stored rows, the real formula, no model call, no run registered
+  // (2026-10-09, asked on area 19).
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "measure: --eval-only (open script, stored rows, no model)",
+      "type": "debugpy",
+      "request": "launch",
+      "program": "${file}",
+      "args": ["--eval-only"],
+      "cwd": "${fileDirname}/..",
+      "python": "${workspaceFolder}/.venv/bin/python",
+      "console": "integratedTerminal",
+      "justMyCode": false
+    },
+    {
+      "name": "measure: --show 1 (open script, render one prompt, no model)",
+      "type": "debugpy",
+      "request": "launch",
+      "program": "${file}",
+      "args": ["--show", "1"],
+      "cwd": "${fileDirname}/..",
+      "python": "${workspaceFolder}/.venv/bin/python",
+      "console": "integratedTerminal",
+      "justMyCode": false
+    },
+    {
+      "name": "measure: --probe (open script, a few real calls, throwaway file)",
+      "type": "debugpy",
+      "request": "launch",
+      "program": "${file}",
+      "args": ["--probe"],
+      "cwd": "${fileDirname}/..",
+      "python": "${workspaceFolder}/.venv/bin/python",
+      "console": "integratedTerminal",
+      "justMyCode": false
+    },
+    {
+      "name": "measure: --derive RUN_ID (open script, re-evaluate stored rows as a derived run)",
+      "type": "debugpy",
+      "request": "launch",
+      "program": "${file}",
+      "args": ["--derive", "${input:runId}"],
+      "cwd": "${fileDirname}/..",
+      "python": "${workspaceFolder}/.venv/bin/python",
+      "console": "integratedTerminal",
+      "justMyCode": false
+    },
+    {
+      "name": "pytest: open test file, stop at the first failure",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "pytest",
+      "args": ["${file}", "-x", "-q"],
+      "cwd": "${workspaceFolder}",
+      "python": "${workspaceFolder}/.venv/bin/python",
+      "console": "integratedTerminal",
+      "justMyCode": false
+    }
+  ],
+  "inputs": [
+    {
+      "id": "runId",
+      "type": "promptString",
+      "description": "run id to derive from (runs/<id>, see `runlog <area>`)"
+    }
+  ]
+}

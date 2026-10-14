@@ -22,3 +22,6 @@
 14:27:50 · edit · decide audit findings, fill protocol remaining fields, freeze
 14:27:59 · run · labkit-init exp --report (from root)
 14:28:13 · edit · freeze: frozen=true, preflight_audit
+14:28:21 · run · runlog start (the run)
+14:29:07 · run · protocol-fill --from-run, finalize
+14:29:14 · edit · README placeholders; final commit + push

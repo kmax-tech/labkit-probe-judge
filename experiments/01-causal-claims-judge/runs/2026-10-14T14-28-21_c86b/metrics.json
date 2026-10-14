@@ -1,0 +1,14 @@
+{
+  "n_items": 12,
+  "n_rows": 24,
+  "a1_empty": 0,
+  "a1_pass": true,
+  "a2_accuracy": 0.5,
+  "a2_empty": 0,
+  "a2_pass": true,
+  "c1_accuracy": 0.9166666666666666,
+  "c1_threshold": 0.75,
+  "c1_pass": true,
+  "llm_retries": 0,
+  "duration_s": 39.3
+}

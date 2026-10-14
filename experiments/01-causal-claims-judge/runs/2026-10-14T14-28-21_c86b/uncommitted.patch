@@ -1,0 +1,9 @@
+diff --git a/log.md b/log.md
+index a25d659..b252ed2 100644
+--- a/log.md
++++ b/log.md
+@@ -22,3 +22,4 @@
+ 14:27:50 · edit · decide audit findings, fill protocol remaining fields, freeze
+ 14:27:59 · run · labkit-init exp --report (from root)
+ 14:28:13 · edit · freeze: frozen=true, preflight_audit
++14:28:21 · run · runlog start (the run)

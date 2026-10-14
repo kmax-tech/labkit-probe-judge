@@ -1,0 +1,82 @@
+{
+  "schema_version": 2,
+  "experiment": "causal-claims-judge",
+  "script": "01_measure.py",
+  "protocol": {
+    "id": "p-250f12a9d1be4b35",
+    "path": "PROTOCOL-causal-claims-judge.md"
+  },
+  "derived_from": null,
+  "unfrozen_ack": false,
+  "cost_tier": "minutes",
+  "promises": {
+    "block_sha": "7eef46b80380",
+    "digest": "promises-normalized-json",
+    "ids": {
+      "C1": {
+        "key": "c1_pass",
+        "constants": {
+          "margin": 0.25
+        },
+        "scope": [
+          "scripts/01_measure.py"
+        ],
+        "declared_scope_sha": "1960dfbc0388"
+      },
+      "A1": {
+        "key": "a1_pass",
+        "constants": {
+          "max_empty": 2
+        },
+        "scope": [
+          "scripts/01_measure.py"
+        ],
+        "declared_scope_sha": "1960dfbc0388"
+      },
+      "A2": {
+        "key": "a2_pass",
+        "constants": {
+          "null_band_items": 1
+        },
+        "scope": [
+          "scripts/01_measure.py"
+        ],
+        "declared_scope_sha": "1960dfbc0388"
+      }
+    }
+  },
+  "script_sha": "f0516e9252d4",
+  "untracked_sources": [],
+  "pid": 1497,
+  "git": "60d21d5+dirty",
+  "git_full": "60d21d50a45cc96da4300c2796fa3d408dc5684e",
+  "python": "3.13.16",
+  "env": "/home/user/labkit-probe-judge/.venv/bin/python | requirements.lock:3c5f525e7077 | drift:0",
+  "models_resolved": {
+    "haiku": {
+      "backend": "claude-cli",
+      "model": "claude-haiku-4-5-20251001",
+      "alias": "haiku",
+      "controls_temperature": false
+    }
+  },
+  "started": "2026-10-14T14:28:21",
+  "command": [
+    "experiments/01-causal-claims-judge/scripts/01_measure.py"
+  ],
+  "data": {
+    "prepared": {
+      "path": "/home/user/labkit-probe-judge/experiments/01-causal-claims-judge/data/prepared/claims_v1.jsonl",
+      "sha256": "8f40f576c69d875f",
+      "rows": 12
+    },
+    "leakage_check": "skipped: need >=2 of train/dev/test, or a control (anchor/gate/placebo) and a measured set, as .jsonl with an 'id' field per row"
+  },
+  "config": {
+    "margin": 0.25,
+    "max_empty": 2,
+    "null_band_items": 1,
+    "model": "haiku",
+    "prompt_sha": "78dbe61f39f9"
+  }
+}

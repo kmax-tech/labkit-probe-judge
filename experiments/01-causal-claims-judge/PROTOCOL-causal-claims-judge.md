@@ -2,13 +2,11 @@
 
 ## Summary (after the run, for a person)
 
-- **Result:** <the answer to the question above, in at most two plain sentences…>
-- **Limits:** <how far it holds, one sentence…>
-- **Next step:** <what follows…>
-- **Question †:** <the Intent's question in plain words, first — the Result
-  below is its answer (a person reading only the Summary did not recognise
-  the Result as the answer, 2026-10-08)>
-- **Did †:** <what was done, one sentence — for a reader with no context>
+- **Result:** n_items = 12, n_rows = 24, a1_empty = 0, a1_pass = True, a2_accuracy = 0.5, a2_empty = 0, a2_pass = True, c1_accuracy = 0.9166666666666666, c1_threshold = 0.75, c1_pass = True (run 2026-10-14T14-28-21_c86b)
+- **Limits:** Twelve items, one draw each; one answer moves accuracy by 1/12; surface cues not excluded.
+- **Next step:** Larger item set with cue-free negatives; then the agent audit before the number is cited.
+- **Question †:** Does haiku recognise causal claims?
+- **Did †:** Ran 12 items in a registered and a null lane through runlog.
 
 
 ## Intent (before the run)
@@ -27,21 +25,15 @@
 
 ## Result (after the run — write back, don't go quiet)
 
-- **Answer to the question:** <per registered id its verdict, and the run_id…>
-- **Answering run:** none yet — the run `finalize` holds this protocol to,
-  written with the number by `protocol-fill PROTOCOL-<name>.md --from-run`
-  after `finalize`; `finalize` refuses any other run_id here (a readable
-  projection of `runs.bound_answering_run`, never a second binding)
+- **Answer to the question:** n_items = 12, n_rows = 24, a1_empty = 0, a1_pass = True, a2_accuracy = 0.5, a2_empty = 0, a2_pass = True, c1_accuracy = 0.9166666666666666, c1_threshold = 0.75, c1_pass = True (run 2026-10-14T14-28-21_c86b)
+- **Answering run:** 2026-10-14T14-28-21_c86b
 - **Deviations after freeze:** none
-- **Raw output:** <one real prompt+answer pair per finding>
-- **Interpretation / next step:** <one sentence…>
-- **Outcome †:** <expected or surprising — failures belong here>
-- **Rival check †:** <which rivals are ruled out, which still stand?>
-- **Caps/drops †:** <what was omitted or limited>
-- **Analysis audit †:** <date · scope sha · N findings — the audit of the
-  EVALUATION against the frozen criterion, before the number leaves; at
-  cost seconds due at promotion or when the number steers a decision
-  (→ LAB-050 Analysis audit before reporting, LAB-017 The number of audits follows the cost tier)>
+- **Raw output:** registered:c01 'Yes.' (gold causal); registered:c02 'No' (gold not_causal).
+- **Interpretation / next step:** Haiku separates the pairs well above the placebo; see Next step.
+- **Outcome †:** c1_accuracy 11/12 against bar 0.75; C1, A1, A2 pass.
+- **Rival check †:** Not done; surface-cue rival untested.
+- **Caps/drops †:** none; 12 of 12 rows scored, 0 empty.
+- **Analysis audit †:** n/a — due later, when the number steers a decision.
 
 <!-- APPARATUS — this part gets LOOKED UP, not read. -->
 
@@ -104,7 +96,7 @@
 
 ## Runs (documented runs — via `runlog`, cite run_ids instead of retyping numbers)
 
-- <run_id> — <one sentence: what this run was>
+- 2026-10-14T14-28-21_c86b — the kept run; its metrics.json is the number
 
 ## Follow-up
 

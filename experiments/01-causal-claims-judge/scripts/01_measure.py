@@ -65,7 +65,7 @@ REPO = AREA.parent.parent
 sys.path.insert(0, str(REPO / "lib"))   # repo-local helpers only
 from labkit import batch, llm, promises, runlog
 
-ITEMS = AREA / "data" / "prepared" / "TODO_v1.jsonl"   # written by 00_prepare.py: id · text · gold
+ITEMS = AREA / "data" / "prepared" / "claim_sentences_v1.jsonl"   # written by 00_prepare.py: id · text · gold
 # One run, one output file. A second start of the same command RESUMES this
 # file (rows already answered are skipped); runlog records the file's sha per
 # run, so a run can always be told from the file it produced. A new
@@ -73,7 +73,7 @@ ITEMS = AREA / "data" / "prepared" / "TODO_v1.jsonl"   # written by 00_prepare.p
 # name, or this one moved aside first: never two measurements in one file.
 OUT = AREA / "output" / "causal-claims-judge.jsonl"
 MODEL = "haiku"                                       # alias from models.toml, never an endpoint
-TEXT_FIELD = "text"                                     # TODO: the item field the prompt shows
+TEXT_FIELD = "text"                                     # the item field the prompt shows
 
 # Cases the criterion singles out, as DATA — delete this block when [C…]
 # names no case classes. One [[case]] per singled-out item in
@@ -133,12 +133,12 @@ def one_per_class(cases: tuple[CaseClass, ...] | None = None) -> tuple[str, ...]
 
 # The answer vocabulary — one constant, two readers (prompt and parser).
 # TODO: map each answer word to the gold label it means.
-ANSWERS = {"Yes": "TODO-positive-gold", "No": "TODO-negative-gold"}
+ANSWERS = {"Yes": "causal", "No": "not_causal"}
 ANSWER_LINE = f"Answer with a single word, {' or '.join(ANSWERS)}."
 
 # TODO: the registered question, verbatim — it goes into the PROTOCOL word
 # for word (code-check holds the protocol's block to this constant).
-PROMPT = ("TODO: the question about this text.\n\n"
+PROMPT = ("Does this sentence make a causal claim, that one thing brings about another?\n\n"
           "Text: {text}\n\n" + ANSWER_LINE + "\n\nAnswer:")
 # TODO: the null lane — same renderer, same parser, same label mapping, a
 # question the data CANNOT answer (a placebo question, or the labels
@@ -150,7 +150,7 @@ PROMPT = ("TODO: the question about this text.\n\n"
 # call. A placebo whose answer varies per item (numbers, length, negation)
 # can track the gold label: one cold agent's did, and [A2] withheld [C1]
 # (usability probe 2026-10-07).
-PROMPT_NULL = ("TODO: a question about this text that has nothing to do with the gold label.\n\n"
+PROMPT_NULL = ("Is this text written in English?\n\n"
                "Text: {text}\n\n" + ANSWER_LINE + "\n\nAnswer:")
 LANES = {"registered": PROMPT, "null": PROMPT_NULL}
 

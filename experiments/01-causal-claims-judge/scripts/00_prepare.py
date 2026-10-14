@@ -44,18 +44,18 @@ PROTOCOL = AREA / "PROTOCOL-causal-claims-judge.md"
 sys.path.insert(0, str(REPO / "lib"))   # repo-local helpers only
 from labkit import batch, promises, runlog
 
-SOURCE = REPO / "data" / "TODO"                 # raw input (record sha256 via runlog data=)
-OUT = AREA / "data" / "prepared" / "TODO_v1.jsonl"   # <row-noun>_v1, see docstring
+SOURCE = REPO / "data" / "raw" / "claims.jsonl"  # raw input (record sha256 via runlog data=)
+OUT = AREA / "data" / "prepared" / "claim_sentences_v1.jsonl"   # <row-noun>_v1, see docstring
 
 # The field legend — minted HERE, once (LAB-086 Values rule (codes are names too): values are names
 # too). English only, no mixed-language names; every enum value is spelled
 # out and self-explanatory. Written into the file as the `_meta` header and
 # enforced per row by batch.write_dataset (field drift fails at write time).
-ABOUT = "TODO: one sentence — what one row is and what this dataset is for."
+ABOUT = "One row is one English sentence with its gold label: does it make a causal claim? Items for the causal-claims judge."
 FIELDS = {
     "id": "unique per row",
     "text": "the item the model reads",
-    "gold": "TODO: every gold value spelled out, e.g. causal | not_causal",
+    "gold": "causal = the sentence claims that one thing brings about another | not_causal = it does not make such a claim",
 }
 
 

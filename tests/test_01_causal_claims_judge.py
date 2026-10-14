@@ -51,12 +51,14 @@ def test_perfect_effect_fires_c1():
     assert m["c1_pass"] is True and m["a2_pass"] is True and m["a1_pass"] is True
 
 
-def test_null_band_is_symmetric_at_one_item():
-    """Chance ± one item on twelve: 5, 6 and 7 correct are in, 4 and 8 are
-    out — in shares, 7/12 fell out by floating point (2026-10-06)."""
-    for correct, inside in ((4, False), (5, True), (6, True), (7, True), (8, False)):
+def test_null_band_is_symmetric_at_the_registered_width():
+    """Chance ± null_band_items on twelve, read from the config: the band is
+    counted in items, so 6 ± band is in and anything wider is out — in shares
+    7/12 once fell out by floating point (2026-10-06)."""
+    band = measure.CONFIG.null_band_items
+    for correct in range(13):
         m = measure.evaluate_rows(rows(_twelve(12), _twelve(correct)))
-        assert m["a2_pass"] is inside, correct
+        assert m["a2_pass"] is (abs(correct - 6) <= band), correct
 
 
 def test_null_like_registered_lane_stays_silent():
@@ -112,7 +114,10 @@ CANONICAL_CASES: list[tuple[str, str | None]] = [
     ("", None),
 ]
 PROBE_CASES: list[tuple[str, str | None]] = [
-    # TODO: paste the lines `--probe` prints
+    ("Yes", "causal"),
+    ("No", "not_causal"),
+    ("Yes", "causal"),
+    ("Yes", "causal"),
 ]
 PARSER_CASES = CANONICAL_CASES + PROBE_CASES
 

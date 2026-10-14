@@ -1,0 +1,197 @@
+diff --git a/experiments/01-causal-claims-judge/PROTOCOL-causal-claims-judge.md b/experiments/01-causal-claims-judge/PROTOCOL-causal-claims-judge.md
+index 9ba9a49..273db18 100644
+--- a/experiments/01-causal-claims-judge/PROTOCOL-causal-claims-judge.md
++++ b/experiments/01-causal-claims-judge/PROTOCOL-causal-claims-judge.md
+@@ -8,13 +8,13 @@
+ 
+ ## Intent (before the run)
+ 
+-- **Terms of this protocol:** <first, because the question uses them…>
+-- **Question / hypothesis:** <the one question — what do we expect?>
+-- **Success / failure criterion:** <how do we recognise whether it worked? One id per conjunct, written…>
+-- **Admissibility condition:** <what must hold in the same run before any verdict is issued…>
+-- **Registered branch:** <if a result decides the conclusion or the next analysis, register it…>
+-- **Timebox:** <hard budget, e.g. 4h — then log and ask>
+-- **Split touched:** <which split may be touched: train | dev | test>
++- **Terms of this protocol:** Causal claim: the sentence says or implies that one thing brings about another (because, so, due to, drove, prevented). Not causal: the sentence only orders events or co-occurs them (after, in the same month, and). Registered lane: the question under test. Null lane: an English-language question whose answer is Yes for every item, so its expected accuracy is 6/12 = 0.5. Coinages: margin = 0.25 (C1); max_empty = 1 (A1: 12 items, a second empty answer already makes the parser the finding); null_band_items = 2 (A2: within 2 items of 6/12).
++- **Question / hypothesis:** Does the model behind the alias haiku recognise from one sentence whether it makes a causal claim? Expectation: it answers Yes for the six causal sentences and No for the six others, at least 9 of 12 correct.
++- **Success / failure criterion:** C1: registered-lane accuracy over all 12 items (an empty answer counts as not correct) is at least the null-lane accuracy plus margin 0.25. Fails otherwise.
++- **Admissibility condition:** A1: at most max_empty = 1 empty or unreadable answer on the registered lane. A2: the null lane is within null_band_items = 2 items of 6 of 12. If either fails, C1 has no verdict.
++- **Registered branch:** If C1 passes, the model's recognition of causal claims on these 12 sentences is reported as above null; if it fails, the result is 'no reliable recognition on this set', with no claim about other sets.
++- **Timebox:** 30 minutes wall-clock for the whole lane, including audits; then log and stop.
++- **Split touched:** test (the 12 items are the only split; no tuning on them beyond the instrument check).
+ 
+ ## Result (after the run — write back, don't go quiet)
+ 
+@@ -23,30 +23,44 @@
+   written with the number by `protocol-fill PROTOCOL-<name>.md --from-run`
+   after `finalize`; `finalize` refuses any other run_id here (a readable
+   projection of `runs.bound_answering_run`, never a second binding)
+-- **Deviations after freeze:** <"none", or what was changed after `frozen = true`…>
++- **Deviations after freeze:** none yet (not frozen).
+ - **Raw output:** <one real prompt+answer pair per finding>
+ - **Interpretation / next step:** <one sentence…>
+ 
+ ## Context (self-contained)
+ 
+-- **Problem in one sentence:** <no technical terms — what is being found out?>
+-- **Prior threads:** <2–3 [[wikilinks]], each with half a sentence on why they lead here…>
++- **Problem in one sentence:** Can a small language model tell, from one sentence, whether it says that one thing causes another?
++- **Prior threads:** [[terms]] — defines the words 'causal claim' and 'null lane' as used here, so the gold labels mean one thing.
+ 
+ ## Setup
+ 
+-- **Data / scope:** <source, N, producer script; pilot subset first>
+-- **Model / tool:** <alias from `models.toml` — never hardcode endpoint/ID>
+-  <two arms…>
++- **Data / scope:** data/raw/claims.jsonl: 12 hand-written English sentences (ids c01–c12), six gold causal, six gold not_causal. 00_prepare.py copies them into data/prepared/claim_sentences_v1.jsonl unchanged (producer: scripts/00_prepare.py). No pilot subset: the probe runs the whole set once per lane.
++- **Model / tool:** alias haiku from models.toml (backend claude-cli), called through labkit.llm.complete_many; no endpoint or model id in the code. Two lanes in the same call: registered and null.
+ - **Prompt (verbatim, per variant):**
+ 
+   ```text
+-  <the real prompt — `protocol-fill PROTOCOL-<name>.md --prompts` writes it from the script's PROMPT constants>
++  ── PROMPT ──
++  Does this sentence make a causal claim, that one thing brings about another?
++
++  Text: {text}
++
++  Answer with a single word, Yes or No.
++
++  Answer:
++  ── PROMPT_NULL ──
++  Is this text written in English?
++
++  Text: {text}
++
++  Answer with a single word, Yes or No.
++
++  Answer:
+   ```
+ 
+-- **Model I/O:** <in…>
+-- **Null condition / anchors (in the same run):** <one A per anchor…>
+-- **Exclusions / filters:** <what is dropped from the data or output and why…>
+-- **Unit:** <what one counted or judged thing is…>
++- **Model I/O:** In: one prompt per item per lane, the sentence in the prompt, the answer vocabulary Yes / No. Out: the model's text; the first token decides, empty or unreadable is its own state.
++- **Null condition / anchors (in the same run):** null lane: 'Is this text written in English?' on the same 12 sentences; expected accuracy 6/12 = 0.5 (the gold share of Yes, known before any call); checked by A2 within 2 items.
++- **Exclusions / filters:** None. All 12 rows enter both lanes; an empty answer is dropped from neither lane but counted as not correct and in a1_empty.
++- **Unit:** One sentence judged once in each lane. Accuracy per lane = correct / 12.
+ 
+ ## Checks (render check → instrument check → pilot)
+ 
+@@ -56,8 +70,8 @@
+ - **Instrument check (real pipeline, ~10 calls, `--probe N`):** <per gold class ONE fully rendered prompt+answer pair as a code block…>
+ - **Yield per stage:** <expected vs. obtained per parse step (→ LAB-023 No silent loss)>
+ - **Parser cases harvested:** <the probe's answer forms as REAL cases into the parser test…>
+-- **Clarified terms:** <what was ambiguous, and what is it called now?>
+-- **Changed — and in which class:** <instrument…>
++- **Clarified terms:** 'Causal' is taken in the everyday sense of 'X brought about Y', not the formal sense of causal inference; 'not_causal' includes sentences that are only temporal or co-occurrent.
++- **Changed — and in which class:** none so far. The TODO stamps (paths, gold names, the two prompts, the answer words) were filled before the first call; no model call has been made.
+ - **Pilot:** <N items checked against hand analysis or anchors, before scaling>
+ 
+ ## Runs (documented runs — via `runlog`, cite run_ids instead of retyping numbers)
+@@ -66,7 +80,7 @@
+ 
+ ## Follow-up
+ 
+-- **Notes updated:** <[[…]] — reconcile on contradiction>
++- **Notes updated:** none yet — [[terms]] is the only note this run reads.
+ 
+ ## Notes (by-catch: ideas, follow-up experiments — cheap now, expensive later)
+ 
+@@ -85,7 +99,7 @@ label with `protocol-fill PROTOCOL-<name>.md "<label>" "<value>"`.*
+ [protocol]
+ standard = "0.19"
+ id = "p-55d21bdf7bdf4af8"
+-type = "<exploratory | confirmatory>"
++type = "exploratory"
+ cost = "minutes"
+ frozen = false
+ preflight_audit = ""
+@@ -109,12 +123,12 @@ id = "A1"
+ key = "a1_pass"
+ sentence = "<the yield condition: at most max_empty empty or unreadable answers on the registered lane>"
+ scope = ["scripts/01_measure.py"]
+-constants = { max_empty = 2 }
++constants = { max_empty = 1 }
+ 
+ [[promise]]
+ id = "A2"
+ key = "a2_pass"
+ sentence = "<the null condition: the null lane sits at chance, within null_band_items items>"
+ scope = ["scripts/01_measure.py"]
+-constants = { null_band_items = 1 }
++constants = { null_band_items = 2 }
+ ```
+diff --git a/experiments/01-causal-claims-judge/scripts/00_prepare.py b/experiments/01-causal-claims-judge/scripts/00_prepare.py
+index c0c017e..fe02b71 100755
+--- a/experiments/01-causal-claims-judge/scripts/00_prepare.py
++++ b/experiments/01-causal-claims-judge/scripts/00_prepare.py
+@@ -44,18 +44,18 @@ PROTOCOL = AREA / "PROTOCOL-causal-claims-judge.md"
+ sys.path.insert(0, str(REPO / "lib"))   # repo-local helpers only
+ from labkit import batch, promises, runlog
+ 
+-SOURCE = REPO / "data" / "TODO"                 # raw input (record sha256 via runlog data=)
+-OUT = AREA / "data" / "prepared" / "TODO_v1.jsonl"   # <row-noun>_v1, see docstring
++SOURCE = REPO / "data" / "raw" / "claims.jsonl"  # raw input (record sha256 via runlog data=)
++OUT = AREA / "data" / "prepared" / "claim_sentences_v1.jsonl"   # <row-noun>_v1, see docstring
+ 
+ # The field legend — minted HERE, once (LAB-086 Values rule (codes are names too): values are names
+ # too). English only, no mixed-language names; every enum value is spelled
+ # out and self-explanatory. Written into the file as the `_meta` header and
+ # enforced per row by batch.write_dataset (field drift fails at write time).
+-ABOUT = "TODO: one sentence — what one row is and what this dataset is for."
++ABOUT = "One row is one English sentence with its gold label: does it make a causal claim? Items for the causal-claims judge."
+ FIELDS = {
+     "id": "unique per row",
+     "text": "the item the model reads",
+-    "gold": "TODO: every gold value spelled out, e.g. causal | not_causal",
++    "gold": "causal = the sentence claims that one thing brings about another | not_causal = it does not make such a claim",
+ }
+ 
+ 
+diff --git a/experiments/01-causal-claims-judge/scripts/01_measure.py b/experiments/01-causal-claims-judge/scripts/01_measure.py
+index be914bb..1cd27c7 100755
+--- a/experiments/01-causal-claims-judge/scripts/01_measure.py
++++ b/experiments/01-causal-claims-judge/scripts/01_measure.py
+@@ -65,7 +65,7 @@ REPO = AREA.parent.parent
+ sys.path.insert(0, str(REPO / "lib"))   # repo-local helpers only
+ from labkit import batch, llm, promises, runlog
+ 
+-ITEMS = AREA / "data" / "prepared" / "TODO_v1.jsonl"   # written by 00_prepare.py: id · text · gold
++ITEMS = AREA / "data" / "prepared" / "claim_sentences_v1.jsonl"   # written by 00_prepare.py: id · text · gold
+ # One run, one output file. A second start of the same command RESUMES this
+ # file (rows already answered are skipped); runlog records the file's sha per
+ # run, so a run can always be told from the file it produced. A new
+@@ -73,7 +73,7 @@ ITEMS = AREA / "data" / "prepared" / "TODO_v1.jsonl"   # written by 00_prepare.p
+ # name, or this one moved aside first: never two measurements in one file.
+ OUT = AREA / "output" / "causal-claims-judge.jsonl"
+ MODEL = "haiku"                                       # alias from models.toml, never an endpoint
+-TEXT_FIELD = "text"                                     # TODO: the item field the prompt shows
++TEXT_FIELD = "text"                                     # the item field the prompt shows
+ 
+ # Cases the criterion singles out, as DATA — delete this block when [C…]
+ # names no case classes. One [[case]] per singled-out item in
+@@ -133,12 +133,12 @@ def one_per_class(cases: tuple[CaseClass, ...] | None = None) -> tuple[str, ...]
+ 
+ # The answer vocabulary — one constant, two readers (prompt and parser).
+ # TODO: map each answer word to the gold label it means.
+-ANSWERS = {"Yes": "TODO-positive-gold", "No": "TODO-negative-gold"}
++ANSWERS = {"Yes": "causal", "No": "not_causal"}
+ ANSWER_LINE = f"Answer with a single word, {' or '.join(ANSWERS)}."
+ 
+ # TODO: the registered question, verbatim — it goes into the PROTOCOL word
+ # for word (code-check holds the protocol's block to this constant).
+-PROMPT = ("TODO: the question about this text.\n\n"
++PROMPT = ("Does this sentence make a causal claim, that one thing brings about another?\n\n"
+           "Text: {text}\n\n" + ANSWER_LINE + "\n\nAnswer:")
+ # TODO: the null lane — same renderer, same parser, same label mapping, a
+ # question the data CANNOT answer (a placebo question, or the labels
+@@ -150,7 +150,7 @@ PROMPT = ("TODO: the question about this text.\n\n"
+ # call. A placebo whose answer varies per item (numbers, length, negation)
+ # can track the gold label: one cold agent's did, and [A2] withheld [C1]
+ # (usability probe 2026-10-07).
+-PROMPT_NULL = ("TODO: a question about this text that has nothing to do with the gold label.\n\n"
++PROMPT_NULL = ("Is this text written in English?\n\n"
+                "Text: {text}\n\n" + ANSWER_LINE + "\n\nAnswer:")
+ LANES = {"registered": PROMPT, "null": PROMPT_NULL}

@@ -75,8 +75,11 @@ fields, no reading of labkit's source.
 10. `finalize <area>`, then the analysis audit (`labkit-audit <area> --mode
     analysis`) against the frozen criterion
     (LAB-050 Analysis audit before reporting).
-11. Result note + `analysis/<note>.py --check`; write the result back into
-    the protocol in the same session (LAB-041 Generate numbers, don't retype them).
+11. Write the result back into the protocol (`protocol-fill --from-run`),
+    then `scripts/02_analyze.py --check` holds the note to the run, and
+    `report-check <area>` closes the lane: frozen, finalize clean, an
+    analysis audit of the code as it is, the check passing
+    (LAB-041 Generate numbers, don't retype them).
 
 ## Setup
 

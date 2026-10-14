@@ -88,6 +88,14 @@ def test_the_formula_reads_its_thresholds_from_the_config():
     assert measure.evaluate_rows(rows(_twelve(12), _twelve(6)))["c1_pass"] is True
 
 
+def test_an_empty_answer_counts_as_not_correct():
+    """Accuracy is over every item: two empty answers on twelve are 10/12, not
+    10/10 — a model must not gain accuracy by not answering."""
+    reg = _twelve(12)[:10] + [("", g) for _, g in _twelve(12)[10:]]
+    m = measure.evaluate_rows(rows(reg, _twelve(6)))
+    assert m["a1_empty"] == 2 and m["c1_accuracy"] == 10 / 12
+
+
 def test_null_out_of_band_withholds_the_verdict():
     m = measure.evaluate_rows(rows(_twelve(12), _twelve(12)))
     assert m["a2_pass"] is False and m["c1_pass"] is None

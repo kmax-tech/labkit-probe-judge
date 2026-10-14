@@ -84,7 +84,7 @@ label with `protocol-fill PROTOCOL-<name>.md "<label>" "<value>"`.*
 ```toml
 [protocol]
 standard = "0.19"
-id = "p-250f12a9d1be4b35"
+id = "p-c1b4bd60da684221"
 type = "<exploratory | confirmatory>"
 cost = "minutes"
 frozen = false
@@ -99,7 +99,7 @@ preflight_audit = ""
 [[promise]]
 id = "C1"
 key = "c1_pass"
-sentence = "<the criterion in one sentence: registered accuracy >= null accuracy + margin>"
+sentence = "<the criterion in one sentence: registered accuracy >= null accuracy + margin; accuracy over all items of the lane, an empty answer counts as not correct>"
 scope = ["scripts/01_measure.py"]
 constants = { margin = 0.25 }
 

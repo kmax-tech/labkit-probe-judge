@@ -20,6 +20,9 @@ any verdict; the *criterion* ([C1]) is the verdict.
 
 Measurement contract:
   - Every item runs once in each lane, in the same call.
+  - Accuracy is correct answers over EVERY item of the lane: an empty or
+    unreadable answer counts as not correct (else a model would gain
+    accuracy by not answering) and is counted on its own as `*_empty`.
   - [C1] passes when the registered lane's accuracy is at least the null
     lane's plus `margin`.
   - [A1] checks the registered lane's readable yield, [A2] that the null
@@ -234,38 +237,42 @@ def parse_answer(text: str) -> str | None:
 
 
 def _counts(rows: list[dict]) -> tuple[int, int, int]:
-    """(correct, scored, empty) — integers, so a band is compared exactly."""
+    """(correct, items, empty) — integers, so a band is compared exactly. The
+    denominator is every item of the lane: an empty or unreadable answer is
+    not correct, and is counted on its own (LAB-030 Reasoning models: empty
+    is its own state, never folded into a label). Over readable answers only,
+    both preflight audits of the cloud judge probe flagged it against "over
+    all twelve" (2026-10-14)."""
     labels = [(parse_answer(r["answer"]), r["gold"]) for r in rows]
     empty = sum(1 for got, _ in labels if got is None)
-    scored = [(got, gold) for got, gold in labels if got is not None]
-    return sum(1 for got, gold in scored if got == gold), len(scored), empty
+    return sum(1 for got, gold in labels if got is not None and got == gold), len(rows), empty
 
 
-def _accuracy(rows: list[dict]) -> tuple[float | None, int]:
-    """(accuracy over readable answers, number of empty/unreadable)."""
-    correct, scored, empty = _counts(rows)
-    return (correct / scored if scored else None), empty
+def _accuracy(rows: list[dict]) -> tuple[float, int]:
+    """(accuracy over every item of the lane, number of empty/unreadable)."""
+    correct, items, empty = _counts(rows)
+    return correct / items, empty
 
 
 def _within_chance(rows: list[dict], items: int) -> bool:
     """Is the lane at chance ± `items` items? Compared in item counts:
-    |correct - scored/2| <= items, written as |2·correct - scored| <= 2·items.
+    |correct - n/2| <= items, written as |2·correct - n| <= 2·items.
     In shares the band was asymmetric in floating point — 7/12 fell out of
     "0.5 ± one item" while 5/12 stayed in (found by an agent audit,
     2026-10-06; labkit-paper benchmark stage)."""
-    correct, scored, _ = _counts(rows)
-    return scored > 0 and abs(2 * correct - scored) <= 2 * items
+    correct, n, _ = _counts(rows)
+    return n > 0 and abs(2 * correct - n) <= 2 * items
 
 
 def _at_least(reg: list[dict], null: list[dict], margin: float) -> bool:
-    """[C1] exactly: correct/scored of the registered lane >= that of the null
+    """[C1] exactly: correct/items of the registered lane >= that of the null
     lane + margin, in fractions (margin as written, 0.25 = 1/4). In floats the
     bar sat one ulp high — 5/12 + 0.25 > 8/12 — so a lane exactly at null +
     margin failed (found by the preflight audit of a cold Sonnet probe,
     2026-10-14; the same class as `_within_chance`)."""
-    rc, rs, _ = _counts(reg)
-    nc, ns, _ = _counts(null)
-    return Fraction(rc, rs) >= Fraction(nc, ns) + Fraction(str(margin))
+    rc, rn, _ = _counts(reg)
+    nc, nn, _ = _counts(null)
+    return Fraction(rc, rn) >= Fraction(nc, nn) + Fraction(str(margin))
 
 
 def evaluate_rows(rows: list[dict], cfg: MeasureConfig = CONFIG) -> dict:
@@ -292,7 +299,7 @@ def evaluate_rows(rows: list[dict], cfg: MeasureConfig = CONFIG) -> dict:
                      # items around chance; a different expected rate needs its own count rule
                      "a2_pass": _within_chance(null, cfg.null_band_items)}
     admissible = metrics["a1_pass"] and metrics["a2_pass"]
-    if not admissible or reg_acc is None or null_acc is None:
+    if not admissible:
         metrics.update({"c1_accuracy": reg_acc, "c1_threshold": None, "c1_pass": None})
         return metrics
     metrics.update({"c1_accuracy": reg_acc, "c1_threshold": null_acc + cfg.margin,

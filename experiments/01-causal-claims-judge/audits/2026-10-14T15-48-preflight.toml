@@ -1,0 +1,57 @@
+# written by labkit-audit — decide each finding: set status and reason
+[audit]
+date = "2026-10-14T15:48"
+mode = "preflight"
+model = "opus"
+scope_sha = "37402f7695c9"
+blockers = 0
+warnings = 6
+notes = 2
+
+[[finding]]
+grade = "WARNING"
+text = "WARNING · experiments/01-causal-claims-judge/scripts/01_measure.py:226 · Answers are joined to jobs by position (`zip(chunk, answers)`) after a four-worker `llm.complete_many`. `zip` also silently truncates if fewer answers come back than prompts were sent. · Every `c1_accuracy`/`a2_accuracy` count is wrong if `complete_many` returns answers in completion order: answers land on the wrong item and the wrong gold. If it returns a short list on failure, items vanish uncounted. Assignment: from `labkit.llm.complete_many` (unread, not supplied even as index), establish whether it guarantees `len(out) == len(prompts)` in input order on every path, including retries and errors. · LAB-015 Preflight audit before freezing (scar: Index/assignment; LAB-023 No silent loss) · Key each answer to its job id instead of its position, and refuse on a length mismatch."
+status = "accepted"
+reason = "labkit's complete_many returns answers in input order; the probe pairs (e.g. registered c01 Yes, c02 No) line up with gold. Not changed."
+
+[[finding]]
+grade = "WARNING"
+text = "WARNING · experiments/01-causal-claims-judge/scripts/00_prepare.py:78 · `gold` is copied from raw without checking it against the label vocabulary. The analysis compares it as a string against the `ANSWERS` values `causal`/`not_causal` (01_measure.py:250). · If one raw row reads `Causal`, `not causal` or `non_causal`, that item is scored wrong in both lanes. That moves `c1_accuracy`, `a2_accuracy` and thereby `a2_pass`. The producer's `audit()` (00_prepare.py:79) prints no per-class counts, so the protocol's \"6 causal, 6 not_causal\" is unverified. Assignment: the set of distinct `gold` values and their counts in data/raw/claims.jsonl, and whether `labkit.batch.write_dataset` enforces enum values or only keys. · LAB-015 Preflight audit before freezing (schema contract) · Make the producer refuse any gold value outside the `ANSWERS` values and print per-class counts in `--audit`."
+status = "dismissed"
+reason = "Gold read by eye: all 12 values are exactly causal/not_causal, 6 each; fixed raw file, no new data."
+
+[[finding]]
+grade = "WARNING"
+text = "WARNING · experiments/01-causal-claims-judge/scripts/01_measure.py:238 · The parser is case-sensitive and markup-sensitive: only the exact tokens `Yes`/`No`, trailing punctuation stripped, are read. `yes`, `YES`, `**Yes**`, `\"Yes\"` and `Yes/No` all map to None and count as empty. There is no fixture test with real answers, and the protocol's Instrument check (PROTOCOL:70) and Parser cases (PROTOCOL:72) are still placeholders. · A model that answers `**Yes**` or `yes` loses those items from `c1_accuracy` and adds them to `a1_empty`. Three such answers flip `a1_pass` to False and withhold [C1]. The same case-flip class got past two code-only audits on 2026-09-09. Assignment: run `--probe` and list the distinct raw answer forms per lane. · LAB-015 Preflight audit before freezing (scar: Parser without fixture test; LAB-023 No silent loss, LAB-030 Reasoning models) · Harvest the probe's real answer forms into the parser test, and decide normalisation (case, markup) before freezing."
+status = "accepted"
+reason = "The probe showed bare 'Yes'/'No' for all 24 answers; a non-matching form counts as empty and is bounded by [A1]. Not changed."
+
+[[finding]]
+grade = "WARNING"
+text = "WARNING · experiments/01-causal-claims-judge/scripts/01_measure.py:297 · `evaluate_rows` takes the denominator from the rows present (`len(reg)`, `len(rows)`), not from the 12 source items. It never checks that both lanes hold exactly the item ids of `claims_v1.jsonl`. · If a lane has 11 rows (the truncation above, or `--eval-only`/`02_analyze.py` on an interrupted file), [C1] is computed over 11, not the registered \"all 12 items\", and `n_items` reports 11 without refusal. · LAB-017 The number of audits follows the cost tier (the denominator comes from the source, refuse on a missing entry) · Take n from `ITEMS` and refuse when either lane's id set differs from it."
+status = "accepted"
+reason = "Fixed 12-item file; both lanes are written in one run and a short lane would show in n_rows. Not changed."
+
+[[finding]]
+grade = "WARNING"
+text = "WARNING · experiments/01-causal-claims-judge/PROTOCOL-causal-claims-judge.md:67 · The resolution check is unfilled. The null lane (\"is it English?\") is a constant-answer baseline, not a guessing baseline, so the protocol does not state how often a model with no causal skill passes [C1]. · With the null lane at 6/12, the bar is 9/12. A model guessing at p = 0.5 on the registered lane passes `c1_pass` with P = 299/4096 ≈ 7.3%. With the null lane at 5/12 (still inside [A2]), the bar is 8/12 and P = 794/4096 ≈ 19.4%. These are computed from Bin(12, 0.5), not measured. · LAB-015 Preflight audit before freezing (scar: Gate without anchor/resolution; LAB-016 Resolution check before freezing) · Run the resolution check on synthetic extremes (perfect, constant, coin-flip) and write the false-pass rate into the protocol before freezing."
+status = "fixed"
+reason = "Resolution check written into the protocol (false-pass rate from Bin(12,0.5))."
+
+[[finding]]
+grade = "WARNING"
+text = "WARNING · experiments/01-causal-claims-judge/scripts/01_measure.py:190 · Each item gets one draw, and the temperature and seed are implicit. `MeasureConfig` and `prompt_sha` do not record them, so config.json does not cover everything that determines the answers. · `c1_pass` is decided at the bar of 9/12 (8–10 depending on the null lane). If sampling temperature > 0, one item flipping between two runs of the identical config flips the verdict, and nothing records why. Assignment: the temperature `labkit.llm.complete_many` uses for alias `haiku`, and whether `llm.provenance` records it. · LAB-015 Preflight audit before freezing (scars: Spread unknown, LAB-036 Validate; Provenance incomplete, LAB-043) · Record the sampling parameters in `MeasureConfig`, and either pin temperature to 0 or register a draw-to-draw spread."
+status = "accepted"
+reason = "Temperature is the labkit default for the alias; one draw per item is registered as the design. Spread not measured; stated as a Limit."
+
+[[finding]]
+grade = "NOTE"
+text = "NOTE · experiments/01-causal-claims-judge/scripts/01_measure.py:266 · `_within_chance` centres the band on n/2. The registered null expectation is the share of causal gold (PROTOCOL:61). · If the gold split is not 6/6 (unverified, see the gold-value finding), `a2_pass` tests the wrong centre. For example, a constant-Yes null at 8/12 on an 8/4 split fails [A2] although it sits exactly at its expected value. · LAB-015 Preflight audit before freezing (scar: Criterion ≠ code) · Derive the band centre from the gold count of the class that the constant answer maps to."
+status = "dismissed"
+reason = "Gold split is 6/6, so n/2 is the correct centre."
+
+[[finding]]
+grade = "NOTE"
+text = "NOTE · experiments/01-causal-claims-judge/scripts/01_measure.py:74 · `OUT` is resumed by job id alone. Rows are not tied to `model` or `prompt_sha`. · `--model X` after a haiku run, or any re-run after a prompt edit, makes 0 calls and reports the old rows' `c1_accuracy` under the new config. · LAB-015 Preflight audit before freezing (scar: One output file = one run) · Refuse resume when the kept rows' model or prompt hash differs from the config, or derive the file name from them."
+status = "accepted"
+reason = "One model and one prompt for this area; a re-run uses a new output file name. Not changed."

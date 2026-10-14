@@ -5,6 +5,11 @@
 - **Result:** <the answer to the question above, in at most two plain sentences…>
 - **Limits:** <how far it holds, one sentence…>
 - **Next step:** <what follows…>
+- **Question †:** <the Intent's question in plain words, first — the Result
+  below is its answer (a person reading only the Summary did not recognise
+  the Result as the answer, 2026-10-08)>
+- **Did †:** <what was done, one sentence — for a reader with no context>
+
 
 ## Intent (before the run)
 
@@ -15,6 +20,10 @@
 - **Registered branch:** If C1 passes, the model's recognition of causal claims on these 12 sentences is reported as above null; if it fails, the result is 'no reliable recognition on this set', with no claim about other sets.
 - **Timebox:** 30 minutes wall-clock for the whole lane, including audits; then log and stop.
 - **Split touched:** test (the 12 items are the only split; no tuning on them beyond the instrument check).
+- **Why this design †:** Twelve sentences as six causal and six not_causal, with matched pairs that differ in the connective (because / so versus after / and). Gold is the only difference, so accuracy measures recognition, not vocabulary. A placebo lane with a fixed answer gives the noise floor of this run.
+- **Rival explanations †:** (1) The model answers Yes to any sentence with a connective (because, so, due to); the pairs test that. (2) It answers from word overlap rather than meaning; the pairs share words. Twelve items cannot separate these two; the result is read as consistent with recognition or not, nothing finer.
+- **Out of scope †:** Other models, other languages, longer texts, and any claim about causal inference in general. Only the alias haiku and these twelve sentences.
+
 
 ## Result (after the run — write back, don't go quiet)
 
@@ -26,6 +35,16 @@
 - **Deviations after freeze:** none yet (not frozen).
 - **Raw output:** <one real prompt+answer pair per finding>
 - **Interpretation / next step:** <one sentence…>
+- **Outcome †:** <expected or surprising — failures belong here>
+- **Rival check †:** <which rivals are ruled out, which still stand?>
+- **Caps/drops †:** <what was omitted or limited>
+- **Analysis audit †:** <date · scope sha · N findings — the audit of the
+  EVALUATION against the frozen criterion, before the number leaves; at
+  cost seconds due at promotion or when the number steers a decision
+  (→ LAB-050 Analysis audit before reporting, LAB-017 The number of audits follows the cost tier)>
+
+<!-- APPARATUS — this part gets LOOKED UP, not read. -->
+
 
 ## Context (self-contained)
 
@@ -61,6 +80,16 @@
 - **Null condition / anchors (in the same run):** null lane: 'Is this text written in English?' on the same 12 sentences; expected accuracy 6/12 = 0.5 (the gold share of Yes, known before any call); checked by A2 within 2 items.
 - **Exclusions / filters:** None. All 12 rows enter both lanes; an empty answer is dropped from neither lane but counted as not correct and in a1_empty.
 - **Unit:** One sentence judged once in each lane. Accuracy per lane = correct / 12.
+- **Gate labels (expected) †:** A1 (yield of the registered lane), A2 (null lane within 2 items of 6/12), C1 (registered accuracy at least null plus 0.25). Each gate is named in evaluate_rows().
+- **Data preparation †:** scripts/00_prepare.py copies data/raw/claims.jsonl row by row into data/prepared/claim_sentences_v1.jsonl, read-only, recorded with data={'raw': ...}. No filter, no selection, no rewording. The producer refuses gold values outside {causal, not_causal}.
+- **Meaning of the gold label †:** causal: the sentence asserts that one thing produced another. not_causal: it states an order, a co-occurrence or a parallel fact with no claimed link. Gold was written by the protocol author; it has no second annotator.
+- **Answer form + resolution †:** Answer word Yes or No; the first token decides. Yes maps to causal, No to not_causal. Anything else, or empty, is unreadable and counts as not correct.
+- **How measured †:** Accuracy per lane = correct / 12, empty counted as not correct. Computed in scripts/01_measure.py (evaluate_rows); the run writes it to metrics.json as c1_accuracy.
+- **Validation †:** The resolution check (17 tests, synthetic extremes) and the four-call instrument check. No external validation set exists for this claim type.
+- **Noise ceiling → threshold †:** The null lane has expected accuracy 6/12 by construction. C1 needs 9 of 12 (0.75) on the registered lane. The margin 0.25 was registered before any model call. A coin-flipping registered lane passes C1 with probability about 0.07 at null 6/12, about 0.39 at null 4/12; both are stated as limits.
+- **Free knobs †:** max_empty = 1 and null_band_items = 2, set for twelve items (the registered values were written for 96). Model alias haiku. Prompt wording (prompt_sha in config.json).
+- **Randomness controls †:** One call per item per lane at the CLI backend's default sampling; no seed or temperature is recorded in config.json. Run-to-run variation is not measured here and is a stated limit.
+
 
 ## Checks (render check → instrument check → pilot)
 
@@ -89,6 +118,8 @@ The registered prompt for c01 is the Render-check prompt above; the answer is th
 ## Follow-up
 
 - **Notes updated:** none yet — [[terms]] is the only note this run reads.
+- **Prediction for the follow-up run †:** If the model recognises causal claims, the registered lane scores 9 to 12 of 12 and passes C1. At 6 or fewer it answers near chance on this set, and the sentence wording is the first thing to check.
+
 
 ## Notes (by-catch: ideas, follow-up experiments — cheap now, expensive later)
 
@@ -109,8 +140,8 @@ standard = "0.19"
 id = "p-55d21bdf7bdf4af8"
 type = "exploratory"
 cost = "minutes"
-frozen = false
-preflight_audit = ""
+frozen = true
+preflight_audit = "audits/2026-10-14T16-39-preflight.toml, scope sha af1fa5a47ce7"
 
 # The promises as data (labkit 0.71): one table per id — the key the run
 # reports, the sentence (this promise stated explicitly — no `<…>` left at the

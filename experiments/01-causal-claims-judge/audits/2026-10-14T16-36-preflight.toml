@@ -30,7 +30,7 @@ reason = "00_prepare refuses any gold value outside {causal, not_causal}. Counts
 grade = "WARNING"
 text = "WARNING · experiments/01-causal-claims-judge/scripts/01_measure.py:224 · There is one draw per item and no sampling settings in `MeasureConfig` (:176–184). The run records no temperature or seed, and there is no noise floor for the registered lane. · `c1_pass` at the 8-vs-9-of-12 boundary can flip between two runs of the same config, and config.json cannot tell them apart. Assignment: supply `labkit.llm.complete_many` and check whether temperature is fixed and recorded in `llm.provenance`. · Spread unknown (LAB-036 Validate) · Record the sampling settings in the config, and either state the single draw as a limit in the registration or add repeat draws."
 status = "accepted"
-reason = "MeasureConfig records no sampling settings; the CLI backend"s default sampling applies, one draw per item per lane. Stated as a limit; a repeat-draw run is out of scope for a 12-item minutes lane."
+reason = "MeasureConfig records no sampling settings; the CLI backend's default sampling applies, one draw per item per lane. Stated as a limit; a repeat-draw run is out of scope for a 12-item minutes lane."
 
 [[finding]]
 grade = "WARNING"
@@ -54,4 +54,4 @@ reason = "The registered branch is prose; C1 has no verdict when A1 or A2 fails 
 grade = "NOTE"
 text = "NOTE · experiments/01-causal-claims-judge/scripts/00_prepare.py:117 · The prepare run passes no `data=` for SOURCE, although the comment at :47 says to record the raw sha that way. · If data/raw/claims.jsonl is edited after preparing, nothing ties `claim_sentences_v1.jsonl` to the raw gold it was copied from. The measured number stays frozen through 01's `data={\"prepared\": …}`, but its origin cannot be traced. · Provenance incomplete (LAB-043 Runs go through `runlog`) · Pass SOURCE as `data=` to the prepare run."
 status = "fixed"
-reason = "The prepare run passes data={"raw": SOURCE}, so the raw sha is recorded in runlog."
+reason = "The prepare run passes data={'raw': SOURCE}, so the raw sha is recorded in runlog."

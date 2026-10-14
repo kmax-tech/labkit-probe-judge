@@ -1,0 +1,57 @@
+# written by labkit-audit — decide each finding: set status and reason
+[audit]
+date = "2026-10-14T16:36"
+mode = "preflight"
+model = "opus"
+scope_sha = "e6c78c98c930"
+blockers = 0
+warnings = 6
+notes = 2
+
+[[finding]]
+grade = "WARNING"
+text = "WARNING · experiments/01-causal-claims-judge/PROTOCOL-causal-claims-judge.md:68 · The resolution check only tests synthetic extremes (12/12 and 6/12). It never computes how often C1 passes for a model with no recognition at all. A2 also admits a null lane anywhere in 4..8 of 12, and the C1 bar moves with it (null + 0.25: from 7/12 up to 11/12). · `c1_pass` = True for a coin-flipping registered lane. At null = 6/12 the bar is 9/12, so a random lane passes with P(≥9 of 12 | p=0.5) = 299/4096 ≈ 0.07. At an admissible null of 4/12 (two \"No\" answers to the English question on causal items) the bar drops to 7/12, so it passes with P(≥7 of 12) = 1586/4096 ≈ 0.39, against the registered expectation of \"at least 9 of 12\". · Gate without anchor/resolution (LAB-015 Preflight audit before freezing) · Add the chance rate of C1 passing across the A2 band (4, 6, 8 of 12) to the resolution check, and decide the criterion with that number in view before the freeze."
+status = "accepted"
+reason = "Chance pass rates, computed: a coin-flipping registered lane passes C1 with P=0.07 when the null lane is 6/12 and P=0.39 when it is 4/12 (inside the registered band of 2). Kept as a limit to state with the result; the band is registered, not tuned."
+
+[[finding]]
+grade = "WARNING"
+text = "WARNING · experiments/01-causal-claims-judge/scripts/01_measure.py:225 · `zip(chunk, answers)` silently drops jobs if `llm.complete_many` returns fewer answers than prompts. `evaluate_rows` then takes its denominator from the stored rows (`n_items = len(reg)`, :296), not from the 12 prepared items, and the two lanes are never checked to be the same length. The protocol registers \"accuracy over all 12 items\". · `c1_accuracy`, `a2_accuracy` and `c1_pass`: for example 9/11 instead of 9/12 if one registered answer is lost. A `None` answer would also crash `parse_answer` at :234. Assignment: supply `labkit.llm.complete_many` and check whether it always returns `len(prompts)` strings, with `''` on failure, never short or `None`. · Parser without fixture test, \"drops uncounted\" (LAB-023 No silent loss) · Hold each lane's row count to the prepared item count, and refuse to evaluate on a mismatch."
+status = "fixed"
+reason = "llm.complete_many returns one answer per prompt (checked); measure() now raises when a chunk returns a different count, so no job can drop silently."
+
+[[finding]]
+grade = "WARNING"
+text = "WARNING · experiments/01-causal-claims-judge/scripts/00_prepare.py:79 · The producer copies `gold` without checking its values against `{causal, not_causal}` or its class balance. `audit()` is still the TODO stub (:83–92), and `--show` prints only 10 of the 12 rows. `_within_chance` (01_measure.py:265) centres A2 on n/2, but the protocol registers the null expectation as \"the gold share of Yes\". The two agree only if gold is exactly 6/6. · `a2_pass` and `c1_threshold`. With 7 causal gold rows the null lane's expected value is 7/12, but the band stays centred on 6. A spelling variant such as `Causal` or `non_causal` never equals a parsed label, so it counts as not correct on both lanes. Assignment: count the `gold` values per spelling in data/raw/claims.jsonl and compare them with the registered 6 causal / 6 not_causal. · new class (gold vocabulary and balance that the null anchor rests on are unchecked in the producer) · Make the producer refuse any gold value outside FIELDS' legend, and print per-class counts in `--audit`."
+status = "fixed"
+reason = "00_prepare refuses any gold value outside {causal, not_causal}. Counts in data/raw/claims.jsonl: causal 6, not_causal 6, matching the registered balance. audit() per-class counts stay a TODO and are not claimed."
+
+[[finding]]
+grade = "WARNING"
+text = "WARNING · experiments/01-causal-claims-judge/scripts/01_measure.py:224 · There is one draw per item and no sampling settings in `MeasureConfig` (:176–184). The run records no temperature or seed, and there is no noise floor for the registered lane. · `c1_pass` at the 8-vs-9-of-12 boundary can flip between two runs of the same config, and config.json cannot tell them apart. Assignment: supply `labkit.llm.complete_many` and check whether temperature is fixed and recorded in `llm.provenance`. · Spread unknown (LAB-036 Validate) · Record the sampling settings in the config, and either state the single draw as a limit in the registration or add repeat draws."
+status = "accepted"
+reason = "MeasureConfig records no sampling settings; the CLI backend"s default sampling applies, one draw per item per lane. Stated as a limit; a repeat-draw run is out of scope for a 12-item minutes lane."
+
+[[finding]]
+grade = "WARNING"
+text = "WARNING · experiments/01-causal-claims-judge/scripts/01_measure.py:237 · The parser is case- and markup-sensitive: `yes`, `YES` and `**Yes**` all map to `None` (unreadable). The probe only harvested capitalised plain forms ('Yes'/'No'). · `a1_empty` and `a1_pass`. Two lowercase or bolded answers on the registered lane fail A1 (max_empty = 1), and `c1_pass` becomes None even though both answers were readable to a person. · Parser without fixture test (LAB-023 No silent loss, LAB-030 Reasoning models) · Either decide case and markup normalisation in the parser and pin it with fixture cases, or register that only the exact vocabulary counts."
+status = "accepted"
+reason = "The parser reads the exact vocabulary Yes / No that the prompt asks for. Lowercase or markdown-wrapped answers count as unreadable, so the registration says so. Only exact forms are registered; normalising would add a rule nobody tested against the model."
+
+[[finding]]
+grade = "WARNING"
+text = "WARNING · experiments/01-causal-claims-judge/PROTOCOL-causal-claims-judge.md:125 · All three `[[promise]]` sentences (C1 :125, A1 :132, A2 :139) still hold template placeholders. The head's own comment says no `<…>` may be left at the freeze. · The promise data behind `c1_pass`, `a1_pass` and `a2_pass` would register the template text rather than the Intent fields. Whatever `labkit-params` or `intent-check` shows for these keys would state no criterion. · LAB-004 Identifiers make the intent addressable · Fill the three sentences from the Intent fields before `frozen = true`."
+status = "fixed"
+reason = "The three [[promise]] sentences are filled from the Intent fields (C1, A1, A2)."
+
+[[finding]]
+grade = "NOTE"
+text = "NOTE · experiments/01-causal-claims-judge/PROTOCOL-causal-claims-judge.md:15 · The registered branch has no `[B1]` id, so there is no `b1_*` key. It also has no arm for \"C1 has no verdict\" (A1 or A2 failed → `c1_pass` None, 01_measure.py:304). · If A1 or A2 fails, metrics.json carries `c1_pass: null` and the registration states no conclusion for that case. · Branch not implemented (LAB-013 Registered branch, LAB-004 Identifiers make the intent addressable) · Give the branch an id and an arm for the withheld-verdict case."
+status = "accepted"
+reason = "The registered branch is prose; C1 has no verdict when A1 or A2 fails (c1_pass None), which the Intent already says. A separate [B1] key adds a promise table without changing any number."
+
+[[finding]]
+grade = "NOTE"
+text = "NOTE · experiments/01-causal-claims-judge/scripts/00_prepare.py:117 · The prepare run passes no `data=` for SOURCE, although the comment at :47 says to record the raw sha that way. · If data/raw/claims.jsonl is edited after preparing, nothing ties `claim_sentences_v1.jsonl` to the raw gold it was copied from. The measured number stays frozen through 01's `data={\"prepared\": …}`, but its origin cannot be traced. · Provenance incomplete (LAB-043 Runs go through `runlog`) · Pass SOURCE as `data=` to the prepare run."
+status = "fixed"
+reason = "The prepare run passes data={"raw": SOURCE}, so the raw sha is recorded in runlog."

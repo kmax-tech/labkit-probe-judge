@@ -68,6 +68,7 @@ def build() -> tuple[list[dict], dict]:
     rows). Replace it when items are selected (fixed seed) or confound
     columns precomputed (words, overlap, ...)."""
     items = []
+    legend = {"causal", "not_causal"}   # the gold values the protocol registers
     with SOURCE.open(encoding="utf-8") as fh:
         for n, line in enumerate(fh, 1):
             if not line.strip():
@@ -76,6 +77,8 @@ def build() -> tuple[list[dict], dict]:
             missing = [k for k in FIELDS if k not in row]
             if missing:
                 raise SystemExit(f"{SOURCE.name}:{n}: row lacks {missing}")
+            if row["gold"] not in legend:
+                raise SystemExit(f"{SOURCE.name}:{n}: gold {row['gold']!r} is not in {sorted(legend)}")
             items.append({k: row[k] for k in FIELDS})
     return items, {"rows read": len(items)}
 
@@ -114,7 +117,7 @@ def main() -> None:
     # (cold Sonnet, judge at minutes, 2026-10-14: the first 00_prepare refused).
     config = {"source": str(SOURCE), "n_items": len(items),
               **promises.all_constants(promises.load(PROTOCOL))}
-    with runlog.run("prepare", config=config, base_dir=AREA) as run:
+    with runlog.run("prepare", config=config, base_dir=AREA, data={"raw": SOURCE}) as run:
         # A producer REPLACES its file, never appends. write_dataset does;
         # if this producer must write row-by-row instead, use
         # batch.Store(OUT, mode="produce") — append-only Store turned a

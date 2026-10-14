@@ -122,21 +122,21 @@ preflight_audit = ""
 [[promise]]
 id = "C1"
 key = "c1_pass"
-sentence = "<the criterion in one sentence: registered accuracy >= null accuracy + margin; accuracy over all items of the lane, an empty answer counts as not correct>"
+sentence = "C1: correct over all 12 items of the registered lane (an empty answer counts as not correct) is at least the null lane's correct over 12 plus margin 0.25."
 scope = ["scripts/01_measure.py"]
 constants = { margin = 0.25 }
 
 [[promise]]
 id = "A1"
 key = "a1_pass"
-sentence = "<the yield condition: at most max_empty empty or unreadable answers on the registered lane>"
+sentence = "A1: at most 1 empty or unreadable answer on the registered lane of 12 items."
 scope = ["scripts/01_measure.py"]
 constants = { max_empty = 1 }
 
 [[promise]]
 id = "A2"
 key = "a2_pass"
-sentence = "<the null condition: the null lane sits at chance, within null_band_items items>"
+sentence = "A2: the null lane (is this text in English, expected Yes for all) is within 2 items of 6 of 12 correct."
 scope = ["scripts/01_measure.py"]
 constants = { null_band_items = 2 }
 ```

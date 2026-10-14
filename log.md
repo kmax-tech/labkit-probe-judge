@@ -17,3 +17,5 @@
 14:14:57 · run · pytest + code-check + preflight
 14:15:01 · run · labkit-audit preflight (background)
 14:15:14 · run · git commit WIP (stop hook asked) + push probe-judge-2
+14:25:32 · gate · audit blocker: denominator excludes empties; fixing _counts + parser
+14:25:38 · run · re-audit preflight on fixed code

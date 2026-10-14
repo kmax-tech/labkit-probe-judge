@@ -102,6 +102,8 @@ CANONICAL_CASES: list[tuple[str, str | None]] = [
     (NO, NEG),
     (NO + "\nBecause the text says otherwise.", NEG),
     ("", None),
+    ("yes", POS),
+    ("**No**", NEG),
 ]
 PROBE_CASES: list[tuple[str, str | None]] = [
     ('Yes.', 'causal'),

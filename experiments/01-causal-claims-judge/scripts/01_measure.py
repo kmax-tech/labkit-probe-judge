@@ -227,10 +227,11 @@ def parse_answer(text: str) -> str | None:
     """Model text -> gold label via ANSWERS, or None for empty/unreadable.
     Empty is its own state, never folded into a label (→ LAB-030 Reasoning models); the first
     token decides, a second line of explanation is ignored (→ LAB-023 No silent loss)."""
-    text = text.strip()
+    text = text.strip().strip("*_`\"' ")
     if not text:
         return None
-    return ANSWERS.get(text.split()[0].rstrip(".,:;!"))
+    word = text.split()[0].strip("*_`\"'").rstrip(".,:;!").capitalize()
+    return ANSWERS.get(word)
 
 
 def _counts(rows: list[dict]) -> tuple[int, int, int]:
@@ -238,7 +239,8 @@ def _counts(rows: list[dict]) -> tuple[int, int, int]:
     labels = [(parse_answer(r["answer"]), r["gold"]) for r in rows]
     empty = sum(1 for got, _ in labels if got is None)
     scored = [(got, gold) for got, gold in labels if got is not None]
-    return sum(1 for got, gold in scored if got == gold), len(scored), empty
+    # the protocol scores all rows: an empty answer is wrong, not dropped
+    return sum(1 for got, gold in scored if got == gold), len(labels), empty
 
 
 def _accuracy(rows: list[dict]) -> tuple[float | None, int]:

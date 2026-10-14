@@ -5,3 +5,5 @@ __pycache__/
 .pytest_cache/
 .DS_Store
 .runs.tsv.lock
+# the probe's step log: ignored so a run is not +dirty for the log alone; `git add -f log.md` at the end
+log.md

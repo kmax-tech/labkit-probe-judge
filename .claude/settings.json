@@ -37,6 +37,18 @@
           }
         ]
       }
+    ],
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "cd \"${CLAUDE_PROJECT_DIR:-.}\" && { .venv/bin/labkit-check . 2>/dev/null | grep -q \"^installed .* OK$\"; } || { rm -rf .venv && python3 -m venv .venv && .venv/bin/pip install -q --no-cache-dir -r requirements.txt && .venv/bin/labkit-hooks install && echo \"SessionStart: .venv rebuilt to the pinned labkit\"; }",
+            "timeout": 300,
+            "statusMessage": "SessionStart: the venv matches the pinned labkit, or is rebuilt"
+          }
+        ]
+      }
     ]
   }
 }

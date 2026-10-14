@@ -3,7 +3,7 @@
 You are a researcher new to this lab repository. Work only inside this
 directory; use `.venv/bin/python`. Every `.venv/bin/…` path is relative to
 the repo root: run commands from there, not from an area directory. Commit
-as you go on a branch named `probe-judge`; when you are done, push that
+as you go on a branch named `probe-judge-2`; when you are done, push that
 branch — it is the only way your work leaves this session. Do not ask
 questions; make reasonable choices and note them in your report.
 

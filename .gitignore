@@ -1,0 +1,7 @@
+# stamped by labkit-init — what a lab repo never commits
+.venv
+__pycache__/
+*.pyc
+.pytest_cache/
+.DS_Store
+.runs.tsv.lock

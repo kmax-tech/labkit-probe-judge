@@ -1,0 +1,36 @@
+{
+  // VS Code workspace settings for a lab repo. Stamped by labkit-init lab.
+  // VS Code reads settings.json as JSONC, so these comments are legal.
+
+  // One interpreter (AGENTS.md, "Setup"): the repo venv the measure scripts
+  // call as ../../.venv/bin/python. Pinned here so editor, terminal and test
+  // runner use the same one — the env-manager default (pyenv) picked another,
+  // and its transformers import broke where the venv's did not.
+  "python.defaultInterpreterPath": "${workspaceFolder}/.venv/bin/python",
+  "python.terminal.activateEnvironment": true,
+
+  // Tests live in tests/ (area tests, LAB-016 Resolution check before freezing) and run with the venv's pytest.
+  "python.testing.pytestEnabled": true,
+  "python.testing.unittestEnabled": false,
+  "python.testing.pytestArgs": ["tests"],
+
+  // Type checking is configured once, in pyrightconfig.json (extraPaths,
+  // excludes); Pylance reads that file, nothing is repeated here.
+
+  // Archives, not code: runs/ holds every logged run's frozen script copy,
+  // data/ the datasets. Same list as pyrightconfig.json's exclude.
+  "search.exclude": {
+    "**/.venv": true,
+    "**/runs": true,
+    "**/__pycache__": true,
+    "data": true,
+    "output": true,
+    "resources/templates": true
+  },
+  "files.watcherExclude": {
+    "**/.venv/**": true,
+    "**/runs/**": true,
+    "data/**": true,
+    "output/**": true
+  }
+}

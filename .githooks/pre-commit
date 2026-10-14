@@ -1,0 +1,51 @@
+#!/bin/sh
+# installed by labkit-hooks 0.89.0 — reinstall: .venv/bin/labkit-hooks install
+# Escape hatch for a deliberate exception: git commit --no-verify
+
+fail=0
+staged_protocols=$(git diff --cached --name-only --diff-filter=ACMR | grep -E '(^|/)PROTOCOL-[^/]*\.md$')
+
+# 1. Mandatory fields on every staged protocol.
+if [ -n "$staged_protocols" ]; then
+    if [ ! -x .venv/bin/protocol-check ]; then
+        echo "pre-commit: .venv/bin/protocol-check missing — install labkit into .venv"
+        echo "(.venv/bin/pip install -r requirements.txt)."
+        fail=1
+    # shellcheck disable=SC2086 # word-splitting over the file list is intended
+    elif ! .venv/bin/protocol-check $staged_protocols; then
+        echo ""
+        echo "pre-commit: must fields missing (see above) — fill them, or justify as"
+        echo "'<field>: n/a — <why>'."
+        fail=1
+    fi
+fi
+
+# 2. A number written back: a staged protocol whose answer cites a run goes
+#    through finalize — it must hold, and cite the run the checks hold.
+if [ -n "$staged_protocols" ] && [ -x .venv/bin/finalize ]; then
+    # shellcheck disable=SC2086
+    if ! .venv/bin/finalize --if-reported $staged_protocols; then
+        echo ""
+        echo "pre-commit: finalize reports blockers for a written-back number (see above)."
+        fail=1
+    fi
+fi
+
+# 3. Guard test, where a repo has it: the shared helpers resolve to labkit.
+if [ -f tests/test_shared_helpers_come_from_labkit.py ] && [ -x .venv/bin/python ]; then
+    out=$(.venv/bin/python -m unittest discover -s tests -p "test_shared_helpers_come_from_labkit.py" 2>&1) || {
+        echo "$out"
+        echo ""
+        echo "pre-commit: guard test fails (does something shadow the labkit package?)."
+        fail=1
+    }
+fi
+
+# 4. The repo's own checks: .githooks/pre-commit.local belongs to the repo
+#    and is never written by labkit-hooks (uniagent, 2026-10-07: a replay
+#    test of its runs lived in the hook and an install would have erased it).
+if [ -x .githooks/pre-commit.local ]; then
+    .githooks/pre-commit.local || fail=1
+fi
+
+exit $fail

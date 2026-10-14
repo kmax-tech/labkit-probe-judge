@@ -1,0 +1,144 @@
+"""`experiments/01-causal-claims-judge`: the resolution check and the parser cases, as a permanent test.
+
+    .venv/bin/python -m pytest tests/test_01_causal_claims_judge.py
+
+Imports the area's script by path under a unique name (two areas in one
+pytest run must not share `01_measure`) and never copies its formula. The
+resolution check runs `evaluate_rows()` on synthetic rows in the run's real
+shape — perfect effect fires [C1], a null-like registered lane stays silent,
+too many empty answers fail [A1] and withhold the verdict. The parser cases
+are the canonical answer forms plus the forms `--probe` prints (pasteable);
+until those are pasted the probe test is a TODO, except at cost = seconds.
+"""
+from __future__ import annotations
+
+import importlib.util
+import sys
+from pathlib import Path
+
+import pytest
+
+AREA = Path(__file__).resolve().parent.parent / "experiments/01-causal-claims-judge"
+_spec = importlib.util.spec_from_file_location("measure_01_causal_claims_judge", AREA / "scripts" / "01_measure.py")
+assert _spec is not None and _spec.loader is not None
+measure = importlib.util.module_from_spec(_spec)
+sys.modules[_spec.name] = measure
+_spec.loader.exec_module(measure)
+
+POS, NEG = list(measure.ANSWERS.values())      # the two gold labels, from the one constant
+YES, NO = list(measure.ANSWERS)                 # the two answer words
+
+
+def rows(registered: list[tuple[str, str]], null: list[tuple[str, str]]) -> list[dict]:
+    """Synthetic kept rows in the run's shape: (answer, gold) per lane."""
+    out = []
+    for lane, pairs in (("registered", registered), ("null", null)):
+        for i, (answer, gold) in enumerate(pairs):
+            out.append({"id": f"{lane}:{i}", "lane": lane, "answer": answer, "gold": gold})
+    return out
+
+
+def _twelve(correct: int) -> list[tuple[str, str]]:
+    """Twelve items, `correct` of them answered right, half of each gold label."""
+    golds = [POS] * 6 + [NEG] * 6
+    words = {POS: YES, NEG: NO}
+    other = {POS: NO, NEG: YES}
+    return [(words[g] if i < correct else other[g], g) for i, g in enumerate(golds)]
+
+
+def test_perfect_effect_fires_c1():
+    m = measure.evaluate_rows(rows(_twelve(12), _twelve(6)))
+    assert m["c1_pass"] is True and m["a2_pass"] is True and m["a1_pass"] is True
+
+
+def test_null_band_is_symmetric_at_one_item():
+    """Chance ± one item on twelve: 5, 6 and 7 correct are in, 4 and 8 are
+    out — in shares, 7/12 fell out by floating point (2026-10-06)."""
+    for correct, inside in ((4, False), (5, True), (6, True), (7, True), (8, False)):
+        m = measure.evaluate_rows(rows(_twelve(12), _twelve(correct)))
+        assert m["a2_pass"] is inside, correct
+
+
+def test_null_like_registered_lane_stays_silent():
+    m = measure.evaluate_rows(rows(_twelve(6), _twelve(6)))
+    assert m["c1_pass"] is False
+
+
+def test_too_many_empty_answers_withhold_the_verdict():
+    max_empty = measure.CONFIG.max_empty
+    reg = [("", g) for _, g in _twelve(12)[: max_empty + 1]] + _twelve(12)[max_empty + 1:]
+    m = measure.evaluate_rows(rows(reg, _twelve(6)))
+    assert m["a1_pass"] is False and m["c1_pass"] is None
+
+
+def test_the_formula_reads_its_thresholds_from_the_config():
+    """The run records `asdict(CONFIG)`; this holds that the formula reads the
+    same object — a threshold moved there moves the verdict, so no stray
+    constant decides a number the record does not carry."""
+    from dataclasses import asdict, fields, replace
+
+    from labkit import promises
+
+    assert set(asdict(measure.CONFIG)) == {f.name for f in fields(measure.MeasureConfig)}
+    # every registered constant is a field, read from the block, not copied
+    registered = promises.all_constants(promises.load(measure.PROTOCOL))
+    assert registered and all(asdict(measure.CONFIG)[k] == v for k, v in registered.items())
+    strict = replace(measure.CONFIG, margin=0.9)
+    assert measure.evaluate_rows(rows(_twelve(12), _twelve(6)), strict)["c1_pass"] is False
+    assert measure.evaluate_rows(rows(_twelve(12), _twelve(6)))["c1_pass"] is True
+
+
+def test_null_out_of_band_withholds_the_verdict():
+    m = measure.evaluate_rows(rows(_twelve(12), _twelve(12)))
+    assert m["a2_pass"] is False and m["c1_pass"] is None
+
+
+# The forms the answer line asks for — the parser must read them before any
+# call. The forms the model really writes come on top: `--probe` prints them
+# pasteable (at cost = seconds the first run is the probe, 2026-10-07).
+CANONICAL_CASES: list[tuple[str, str | None]] = [
+    (YES, POS),
+    (YES + ".", POS),
+    (NO, NEG),
+    (NO + "\nBecause the text says otherwise.", NEG),
+    ("", None),
+]
+PROBE_CASES: list[tuple[str, str | None]] = [
+    # TODO: paste the lines `--probe` prints
+]
+PARSER_CASES = CANONICAL_CASES + PROBE_CASES
+
+
+# TODO: one rule per class [C…] speaks of — the class follows from the
+# facts, never from the list it stands in. Delete with the block in 01_measure.py.
+CLASS_RULE = {
+    # "over_ceiling": lambda f: f["hotel_eur"] > f["ceiling_eur"],
+    # "within": lambda f: f["hotel_eur"] <= f["ceiling_eur"],
+}
+
+
+def test_every_case_class_follows_from_its_facts():
+    cases = measure.read_case_classes()
+    if not cases:
+        pytest.skip("no case_classes.toml — the criterion names no case classes")
+    missing = {c.cls for c in cases} - set(CLASS_RULE)
+    assert not missing, f"TODO: a rule for every class: {sorted(missing)}"
+    wrong = [c.id for c in cases if not CLASS_RULE[c.cls](c.facts)]
+    assert wrong == [], f"in a class their facts contradict: {wrong}"
+    assert set(measure.one_per_class()) <= {c.id for c in cases}
+
+
+def test_probe_cases_are_pasted():
+    """Owed before a minutes/hours run (LAB-014 One fully rendered example pair per gold class). At cost = seconds no probe
+    precedes the run, so the canonical forms carry the test until then."""
+    from labkit import protocol_block
+
+    head = protocol_block.head(measure.PROTOCOL.read_text(encoding="utf-8"))
+    if head.cost == "seconds":
+        pytest.skip("cost = seconds: no probe before the run; canonical forms only")
+    assert PROBE_CASES, "TODO: paste the parser cases that `--probe` prints into PROBE_CASES"
+
+
+@pytest.mark.parametrize("raw,expected", PARSER_CASES)
+def test_parser_reads_the_probe_forms(raw, expected):
+    assert measure.parse_answer(raw) == expected

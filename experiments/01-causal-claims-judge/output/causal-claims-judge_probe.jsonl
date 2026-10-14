@@ -1,0 +1,6 @@
+{"id": "registered:c01", "text": "Because the road was icy, the bus arrived twenty minutes late.", "gold": "causal", "lane": "registered", "answer": "Yes."}
+{"id": "registered:c02", "text": "The bus arrived twenty minutes late, and the road was icy.", "gold": "not_causal", "lane": "registered", "answer": "No"}
+{"id": "registered:c03", "text": "Sales rose after the price was cut, so the cut drove the demand.", "gold": "causal", "lane": "registered", "answer": "Yes"}
+{"id": "null:c01", "text": "Because the road was icy, the bus arrived twenty minutes late.", "gold": "causal", "lane": "null", "answer": "Yes"}
+{"id": "null:c02", "text": "The bus arrived twenty minutes late, and the road was icy.", "gold": "not_causal", "lane": "null", "answer": "Yes"}
+{"id": "null:c03", "text": "Sales rose after the price was cut, so the cut drove the demand.", "gold": "causal", "lane": "null", "answer": "Yes"}

@@ -112,7 +112,8 @@ CANONICAL_CASES: list[tuple[str, str | None]] = [
     ("", None),
 ]
 PROBE_CASES: list[tuple[str, str | None]] = [
-    # TODO: paste the lines `--probe` prints
+    ("Yes", "causal"),
+    ("No", "not_causal"),
 ]
 PARSER_CASES = CANONICAL_CASES + PROBE_CASES
 

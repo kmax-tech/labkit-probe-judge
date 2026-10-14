@@ -1,0 +1,130 @@
+#!/usr/bin/env python3
+"""raw -> prepared: materialise the data this experiment reads. ONE transformation.
+
+    ../../.venv/bin/python scripts/00_prepare.py --show   # look at items, no write
+    ../../.venv/bin/python scripts/00_prepare.py --audit  # yields + confound profile
+    ../../.venv/bin/python scripts/00_prepare.py          # write data/prepared/ (runlog)
+
+Out: `data/prepared/<row-noun>_v1.jsonl` — read-only after writing. Naming
+(LAB-020 Materialize transformations): the filename says what ONE row is, context-free
+(`world_pairs`, `story_cells` — never just `pairs` or `items`); `_vN` counts
+regenerations of the SAME meaning; a change in what a row MEANS (renamed or
+re-coded fields included) is a NEW name, never a version bump. Rules with
+evidence: LAB-020 Materialize transformations, LAB-021 No dataset without a producer.
+
+Checks that belong HERE, not in the analysis — `--audit` prints, you look:
+
+- confound columns per gold class (lengths, overlap, ...) — the confound
+  profile can replace the primary metric before any model call
+- marker counts per gold class with an explicit ZERO check — a
+  class-exclusive marker is a free rule, not a confound
+- yield of every filter, per class — a one-sided filter puts itself inside
+  the measured quantity; apply it to the matched pair
+
+An LLM inside the producer (rendering, rewriting)? Three rules: cache per
+unique input (identical inputs must stay textually identical downstream),
+register an EYEBALL admissibility condition in the protocol (does the render preserve what the
+experiment needs? affected rows fall out via the producer, never by editing
+the file), and never let the render "repair" the property under test — a
+renderer once resolved the very contradiction the experiment measured
+(LAB-020 Materialize transformations, lab standard).
+"""
+from __future__ import annotations
+
+import argparse
+import json
+import os
+import sys
+from pathlib import Path
+
+HERE = Path(__file__).resolve().parent
+AREA = HERE.parent
+REPO = AREA.parent.parent
+PROTOCOL = AREA / "PROTOCOL-causal-claims-judge.md"
+sys.path.insert(0, str(REPO / "lib"))   # repo-local helpers only
+from labkit import batch, promises, runlog
+
+SOURCE = REPO / "data" / "raw" / "claims.jsonl"                 # raw input (record sha256 via runlog data=)
+OUT = AREA / "data" / "prepared" / "claims_v1.jsonl"   # <row-noun>_v1, see docstring
+
+# The field legend — minted HERE, once (LAB-086 Values rule (codes are names too): values are names
+# too). English only, no mixed-language names; every enum value is spelled
+# out and self-explanatory. Written into the file as the `_meta` header and
+# enforced per row by batch.write_dataset (field drift fails at write time).
+ABOUT = "One row is one sentence with its gold label (causal claim or not); the items for the causal-claim judge."
+FIELDS = {
+    "id": "unique per row",
+    "text": "the item the model reads",
+    "gold": "causal = the sentence makes a causal claim | not_causal = it does not",
+}
+
+
+def build() -> tuple[list[dict], dict]:
+    """Returns (items, yields) — one yield entry per filter, per gold class.
+
+    The stamped default copies SOURCE (JSONL) row by row, keeping the FIELDS
+    keys — all a clean raw file with id · text · gold needs (2026-10-07:
+    three of three cold agents wrote exactly this by hand to copy twelve
+    rows). Replace it when items are selected (fixed seed) or confound
+    columns precomputed (words, overlap, ...)."""
+    items = []
+    with SOURCE.open(encoding="utf-8") as fh:
+        for n, line in enumerate(fh, 1):
+            if not line.strip():
+                continue
+            row = json.loads(line)
+            missing = [k for k in FIELDS if k not in row]
+            if missing:
+                raise SystemExit(f"{SOURCE.name}:{n}: row lacks {missing}")
+            items.append({k: row[k] for k in FIELDS})
+    return items, {"rows read": len(items)}
+
+
+def audit(items: list[dict], yields: dict) -> None:
+    """Yields per filter + confound profile per gold class — read BEFORE measuring.
+
+    TODO: per gold class print n, the mean of every numeric confound column, and
+    for every marker column the COUNT — then look at the zeros. A marker with a
+    zero in one class is a free rule, not a confound (see module docstring).
+    """
+    print("== yield ==")
+    for k in sorted(yields):
+        print(f"  {k:28s} {yields[k]}")
+
+
+def main() -> None:
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--show", action="store_true")
+    ap.add_argument("--audit", action="store_true",
+                    help="yields + confound profile, no write — read this first")
+    args = ap.parse_args()
+
+    items, yields = build()
+    if args.show:
+        for it in items[:10]:
+            print(json.dumps(it, ensure_ascii=False))
+        return
+    if args.audit:
+        audit(items, yields)
+        return
+    if OUT.exists():
+        sys.exit(f"{OUT.name} exists — data/prepared/ is read-only, variant = new name")
+    # TODO: every knob. The registered constants ride along: runlog refuses
+    # any run under the promise block whose config lacks one, this step too
+    # (cold Sonnet, judge at minutes, 2026-10-14: the first 00_prepare refused).
+    config = {"source": str(SOURCE), "n_items": len(items),
+              **promises.all_constants(promises.load(PROTOCOL))}
+    with runlog.run("prepare", config=config, base_dir=AREA) as run:
+        # A producer REPLACES its file, never appends. write_dataset does;
+        # if this producer must write row-by-row instead, use
+        # batch.Store(OUT, mode="produce") — append-only Store turned a
+        # second producer run into a 625+528-row hybrid (2026-09-09, area 71).
+        batch.write_dataset(OUT, items, about=ABOUT, fields=FIELDS,
+                            producer=Path(__file__).name)
+        os.chmod(OUT, 0o444)
+        print(f"{len(items)} items -> {OUT}")
+        run.metrics(n_items=len(items))
+
+
+if __name__ == "__main__":
+    main()

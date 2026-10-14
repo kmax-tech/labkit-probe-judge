@@ -1,0 +1,68 @@
+{
+  "schema_version": 2,
+  "experiment": "prepare",
+  "script": "00_prepare.py",
+  "protocol": {
+    "id": "p-c1b4bd60da684221",
+    "path": "PROTOCOL-causal-claims-judge.md"
+  },
+  "derived_from": null,
+  "unfrozen_ack": false,
+  "cost_tier": "minutes",
+  "promises": {
+    "block_sha": "9316f9a197ab",
+    "digest": "promises-normalized-json",
+    "ids": {
+      "C1": {
+        "key": "c1_pass",
+        "constants": {
+          "margin": 0.25
+        },
+        "scope": [
+          "scripts/01_measure.py"
+        ],
+        "declared_scope_sha": "79da6c745ca7"
+      },
+      "A1": {
+        "key": "a1_pass",
+        "constants": {
+          "max_empty": 2
+        },
+        "scope": [
+          "scripts/01_measure.py"
+        ],
+        "declared_scope_sha": "79da6c745ca7"
+      },
+      "A2": {
+        "key": "a2_pass",
+        "constants": {
+          "null_band_items": 1
+        },
+        "scope": [
+          "scripts/01_measure.py"
+        ],
+        "declared_scope_sha": "79da6c745ca7"
+      }
+    }
+  },
+  "script_sha": "cb2321f17c13",
+  "untracked_sources": [],
+  "pid": 509,
+  "git": "08d07a6+dirty",
+  "git_full": "08d07a6f0081e5569d11ce1e11e15dab03835240",
+  "python": "3.13.16",
+  "env": "/home/user/labkit-probe-judge/.venv/bin/python | requirements.lock:a36c9b668b0c | drift:0",
+  "models_resolved": {},
+  "started": "2026-10-14T15:45:18",
+  "command": [
+    "scripts/00_prepare.py"
+  ],
+  "data": {},
+  "config": {
+    "source": "/home/user/labkit-probe-judge/data/raw/claims.jsonl",
+    "n_items": 12,
+    "margin": 0.25,
+    "max_empty": 2,
+    "null_band_items": 1
+  }
+}

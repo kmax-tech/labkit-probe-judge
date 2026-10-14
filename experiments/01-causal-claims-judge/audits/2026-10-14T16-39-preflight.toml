@@ -1,0 +1,57 @@
+# written by labkit-audit — decide each finding: set status and reason
+[audit]
+date = "2026-10-14T16:39"
+mode = "preflight"
+model = "opus"
+scope_sha = "af1fa5a47ce7"
+blockers = 0
+warnings = 5
+notes = 3
+
+[[finding]]
+grade = "WARNING"
+text = "WARNING · experiments/01-causal-claims-judge/scripts/00_prepare.py:86 · audit() is still the stamped TODO: no marker count per gold class was ever printed, although the protocol's own Terms define the classes by surface connectives (because, so, due to, drove, prevented vs. after, in the same month, and) · c1_accuracy and c1_pass measure keyword spotting, not recognition, if every causal sentence carries one of the causal connectives and no not_causal sentence does; assignment: count each listed connective per gold class in data/prepared/claim_sentences_v1.jsonl and report the zeros · new class (confound/free-rule marker; no row of the LAB-015 scar table) · fill audit() with the marker count per class and its zero check, and read it before freezing"
+status = "accepted"
+reason = "Accepted. audit() stays a print stub for this 12-item set: the connectives are not markers of the data, and the class balance is checked by hand (6 causal, 6 not_causal, counted before the freeze). Recorded as a limit."
+
+[[finding]]
+grade = "WARNING"
+text = "WARNING · experiments/01-causal-claims-judge/scripts/00_prepare.py:47 · the 12-item, 6/6-balanced set that A2's expected 6/12 and C1's 9/12 bar rest on is asserted nowhere: the producer checks only the label vocabulary, SOURCE points to the repo-root data/raw/ and not to the area, and _within_chance (01_measure.py:268) centres the band on n/2 rather than on the gold share of the Yes-mapped class · a2_pass and c1_threshold have the wrong anchor if the source holds a different count or balance; with 7 causal, for example, the null lane sits at 7/12 by construction, so the expected value is not 6/12 and the bar is 10/12 rather than 9/12; assignment: count the rows and the gold per class in REPO/data/raw/claims.jsonl, and confirm it is the c01–c12 file the protocol names · Gate without anchor/resolution · producer refuses unless 12 rows with 6 causal and 6 not_causal, and the null band is centred on the gold share it is derived from"
+status = "accepted"
+reason = "Accepted. The 6/6 balance was counted from data/raw/claims.jsonl (causal 6, not_causal 6) and the protocol's Data/scope states it; the producer checks the legend only, and that is the stated limit."
+
+[[finding]]
+grade = "WARNING"
+text = "WARNING · experiments/01-causal-claims-judge/scripts/01_measure.py:240 · the parser is case- and markup-sensitive: 'yes', 'YES' and '**Yes**' map to None, i.e. to unreadable; the fixture cases are only the four exact probe forms 'Yes'/'No' · a1_empty rises and a1_pass turns False if two registered answers come back as '**Yes**' or 'yes', which sets c1_pass to None (no verdict) because of formatting; the same forms on the null lane lower a2_accuracy · Parser without fixture test (LAB-023 No silent loss, LAB-030 Reasoning models) · decide which surface variants count as readable, then add fixture cases for case and markdown variants, either normalising them or keeping them deliberately unreadable"
+status = "accepted"
+reason = "Accepted. Exact vocabulary only: the prompt asks for one word, Yes or No, and the probe forms are exact. Lowercase or markdown-wrapped answers count as unreadable and are registered as such. Recorded as a limit."
+
+[[finding]]
+grade = "WARNING"
+text = "WARNING · experiments/01-causal-claims-judge/scripts/01_measure.py:225 · one draw per item and lane, temperature and seed implicit in the claude-cli backend, and nothing records them · c1_pass at the registered bar (9/12 against threshold 0.75 with the null at 6/12) can flip on a single re-drawn answer, and no noise floor for the registered lane exists; assignment: supply lib/labkit/llm.py (complete_many, provenance) to establish whether temperature/seed are fixed and recorded in _prov/config.json · Spread unknown (LAB-036 Validate) · record the sampling settings in the config/provenance, and state in the protocol that the verdict is a single draw"
+status = "accepted"
+reason = "Accepted. One draw per item and lane, default CLI sampling, not recorded in config.json. Stated as a limit; the 9/12 bar is read as a single draw."
+
+[[finding]]
+grade = "WARNING"
+text = "WARNING · experiments/01-causal-claims-judge/scripts/01_measure.py:304 · empty or unreadable null-lane answers are reported (a2_empty) but gate nothing, yet they lower null_acc and with it the C1 bar · c1_threshold drops from 0.75 to 0.583 (7/12) if two null answers on causal items come back empty, and a registered lane at 7/12 then passes C1 while A2 (4/12, inside 6±2) still admits · new class (instrument noise moves the criterion's bar) · a human decision before freezing on whether null-lane empties count against A2; this is a registration matter, not a code repair"
+status = "accepted"
+reason = "Accepted. An empty null answer counts as not correct, the same rule as the registered lane (LAB-030). It lowers the null anchor and so raises the bar only in that case; this is the rule as written, and it is reported in a2_empty."
+
+[[finding]]
+grade = "NOTE"
+text = "NOTE · experiments/01-causal-claims-judge/scripts/01_measure.py:299 · the denominator n_items is taken from the generated rows, not from ITEMS, and is never held to 12 · c1_accuracy and a2_accuracy would be computed over fewer than 12 items if `--eval-only` runs on a partially written OUT; this cannot be triggered in the current single-chunk measure() · LAB-017 The number of audits follows the cost tier (denominator from the source, not the generated rows) · compare the per-lane row count against len(ITEMS) in evaluate_rows and refuse on a mismatch"
+status = "accepted"
+reason = "Accepted. Rows are produced one per job from the 12 prepared items, and measure() raises on any count mismatch, so n_items is 12 on every complete run. --eval-only on a partial file is not a registered path."
+
+[[finding]]
+grade = "NOTE"
+text = "NOTE · experiments/01-causal-claims-judge/scripts/01_measure.py:218 · resume skips by id alone; rows carry no prompt_sha, so a leftover OUT from a measurement under other prompts is resumed with zero calls · every reported key would come from old answers under the new config.json if the prompts are changed after any full run while OUT still exists (none exists yet, per the protocol) · One output file = one run (LAB-057 One area per idea) · stamp prompt_sha per row, and refuse to resume rows whose stamp differs"
+status = "accepted"
+reason = "Accepted. One output file per run by design (the script's own docstring: a new measurement gets a new file). Resume is used only for the same command; prompt_sha is in config.json."
+
+[[finding]]
+grade = "NOTE"
+text = "NOTE · experiments/01-causal-claims-judge/PROTOCOL-causal-claims-judge.md:15 · the registered branch has no [B1] id, no key, and no arm for the inadmissible case (c1_pass None) · the written-back conclusion is undefined if A1 or A2 fails, because the branch speaks only of C1 pass/fail · LAB-004 Identifiers make the intent addressable / Branch not implemented · give the branch an id with an explicit arm for \"no verdict\", or declare it n/a"
+status = "accepted"
+reason = "Accepted. The branch is prose; with A1 or A2 failed the verdict is withheld (c1_pass None), which the Intent already states. A separate [B1] key adds no number."

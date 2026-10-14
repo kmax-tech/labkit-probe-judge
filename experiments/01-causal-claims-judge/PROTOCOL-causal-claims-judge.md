@@ -84,15 +84,16 @@ label with `protocol-fill PROTOCOL-<name>.md "<label>" "<value>"`.*
 ```toml
 [protocol]
 standard = "0.19"
-id = "p-c1b4bd60da684221"
+id = "p-55d21bdf7bdf4af8"
 type = "<exploratory | confirmatory>"
 cost = "minutes"
 frozen = false
 preflight_audit = ""
 
 # The promises as data (labkit 0.71): one table per id — the key the run
-# reports, the sentence (the same as the Intent field), the code region, and
-# the constants the script reads with promises.all_constants(). A constant is
+# reports, the sentence (this promise stated explicitly — no `<…>` left at the
+# freeze), the code region, and the constants the script reads with
+# promises.all_constants(). A constant is
 # named like the config key (lowercase) and stands in exactly one table;
 # `frozen = true` owes these tables, and no run starts whose config lacks a
 # constant or carries another value.

@@ -4,7 +4,7 @@
 #   python3 -m venv .venv && .venv/bin/pip install -r requirements.txt
 #   .venv/bin/labkit-hooks install    (the hooks of this labkit)
 # Raise the pin on purpose, never silently.
-labkit @ git+https://github.com/kmax-tech/labkit.git@v0.91.1
+labkit @ git+https://github.com/kmax-tech/labkit.git@v0.91.2
 
 # The stamped areas carry a test (tests/test_<NN>_<name>.py); preflight and
 # finalize run it, and without pytest they only warn (cloud probe 2026-10-12).

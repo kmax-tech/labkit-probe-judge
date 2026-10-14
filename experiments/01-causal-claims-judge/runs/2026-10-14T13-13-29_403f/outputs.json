@@ -1,0 +1,11 @@
+[
+  {
+    "path": "/home/user/labkit-probe-judge/experiments/01-causal-claims-judge/output/causal-claims-judge.jsonl",
+    "sha256": "728224f98a68df45",
+    "lines": 24,
+    "rows_from": {
+      "2026-10-14T13-13-29_403f": 24
+    },
+    "continues": []
+  }
+]

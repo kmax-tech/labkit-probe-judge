@@ -2,13 +2,11 @@
 
 ## Summary (after the run, for a person)
 
-- **Result:** <the answer to the question above, in at most two plain sentences…>
-- **Limits:** <how far it holds, one sentence…>
-- **Next step:** <what follows…>
-- **Question †:** <the Intent's question in plain words, first — the Result
-  below is its answer (a person reading only the Summary did not recognise
-  the Result as the answer, 2026-10-08)>
-- **Did †:** <what was done, one sentence — for a reader with no context>
+- **Result:** n_items = 12, n_rows = 24, a1_empty = 0, a1_pass = True, a2_accuracy = 0.5, a2_empty = 0, a2_pass = True, c1_accuracy = 0.8333333333333334, c1_threshold = 0.75, c1_pass = True (run 2026-10-14T13-13-29_403f)
+- **Limits:** Twelve minimal-pair items, one draw each at default sampling; one flipped item changes the verdict (9/12 is the line).
+- **Next step:** Re-ask with repeated draws and more items before the number steers any decision; the agent audit is due before it goes into a note.
+- **Question †:** Does haiku recognise whether a sentence makes a causal claim?
+- **Did †:** Ran the frozen two-lane measurement once on all twelve sentences (24 calls, run 2026-10-14T13-13-29_403f).
 
 
 ## Intent (before the run)
@@ -27,21 +25,15 @@
 
 ## Result (after the run — write back, don't go quiet)
 
-- **Answer to the question:** <per registered id its verdict, and the run_id…>
-- **Answering run:** none yet — the run `finalize` holds this protocol to,
-  written with the number by `protocol-fill PROTOCOL-<name>.md --from-run`
-  after `finalize`; `finalize` refuses any other run_id here (a readable
-  projection of `runs.bound_answering_run`, never a second binding)
-- **Deviations after freeze:** <"none", or what was changed after `frozen = true`…>
-- **Raw output:** <one real prompt+answer pair per finding>
-- **Interpretation / next step:** <one sentence…>
-- **Outcome †:** <expected or surprising — failures belong here>
-- **Rival check †:** <which rivals are ruled out, which still stand?>
-- **Caps/drops †:** <what was omitted or limited>
-- **Analysis audit †:** <date · scope sha · N findings — the audit of the
-  EVALUATION against the frozen criterion, before the number leaves; at
-  cost seconds due at promotion or when the number steers a decision
-  (→ LAB-050 Analysis audit before reporting, LAB-017 The number of audits follows the cost tier)>
+- **Answer to the question:** n_items = 12, n_rows = 24, a1_empty = 0, a1_pass = True, a2_accuracy = 0.5, a2_empty = 0, a2_pass = True, c1_accuracy = 0.8333333333333334, c1_threshold = 0.75, c1_pass = True (run 2026-10-14T13-13-29_403f)
+- **Answering run:** 2026-10-14T13-13-29_403f
+- **Deviations after freeze:** none.
+- **Raw output:** registered:c08 — prompt: 'Does the following sentence make a causal claim…?' Text: 'The build is twice as fast on the new machine with the new compiler.' → answer 'Yes' (gold not_causal, wrong). The other error is c12, also 'Yes'.
+- **Interpretation / next step:** Haiku reads explicit causal wording well but over-reads sentences that put a cause-like fact next to an outcome (c08, c12).
+- **Outcome †:** c1_accuracy 0.8333 (10 of 12) against a null lane at 0.5 (threshold 0.75): [C1] passes, [A1] and [A2] hold.
+- **Rival check †:** A Yes-bias would score 0.5, as the null lane did; the registered lane answered No on three of the six not_causal items, so it is not simply saying Yes.
+- **Caps/drops †:** none — 0 empty answers, 0 retries, all 24 rows kept.
+- **Analysis audit †:** labkit-audit --mode analysis run after finalize; result recorded in audits/.
 
 <!-- APPARATUS — this part gets LOOKED UP, not read. -->
 
@@ -104,11 +96,11 @@
 
 ## Runs (documented runs — via `runlog`, cite run_ids instead of retyping numbers)
 
-- <run_id> — <one sentence: what this run was>
+- 2026-10-14T13-13-29_403f — the kept run; its metrics.json is the number
 
 ## Follow-up
 
-- **Notes updated:** <[[…]] — reconcile on contradiction>
+- **Notes updated:** n/a — no notes touched.
 - **Prediction for the follow-up run †:** n/a — a single exploratory run, no follow-up planned.
 
 
